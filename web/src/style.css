@@ -236,3 +236,12 @@ button.icon { padding: 7px 10px; }
   .hud-stats .v { font-size: 19px; }
   #iotPanel { width: 340px; }
 }
+
+/* ---------- team of pickers ---------- */
+.pickrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 10px; }
+.pickrow .lbl { font-family: var(--f-cond); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+#pickerButtons button { min-width: 30px; font-family: var(--f-mono); }
+#teamTable { margin-top: 12px; }
+#teamChart { width: 100%; height: 85px; display: block; margin-top: 10px; background: var(--paper); border: 1px solid var(--rule); }
+.tdot { display: inline-block; width: 16px; height: 16px; line-height: 16px; text-align: center; color: #fff; font-family: var(--f-mono); font-size: 10px; font-weight: 700; margin-right: 7px; border-radius: 2px; flex: none; }
+#orderCard li.wait { color: var(--signal); }

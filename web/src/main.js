@@ -4,6 +4,7 @@ import { buildWarehouse } from './sim/warehouse.js';
 import { buildSmartTrips, buildTrips, edgeTraffic, routeNodes, scoreLayout, slotOfProduct, tripNodes } from './sim/route.js';
 import { coOccurrence, partners } from './sim/layouts.js';
 import { createScene } from './scene/scene.js';
+import { MultiSim, planTrips, runTeam } from './sim/multi.js';
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n, d = 0) => n.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -46,7 +47,7 @@ async function main() {
   LAYOUTS[3].d = `Simulated annealing: ${fmt(ref.meta.saIterations)} random slot swaps, each one judged by re-routing every affected order of the month. The best layout found by the machine.`;
 
   const S = {
-    view: 'original', mode: 'single', traffic: false, iot: false, sel: -1, history: [],
+    view: 'original', mode: 'single', traffic: false, iot: false, sel: -1, history: [], pickers: 1, cap: 1,
     layouts: { ...ref.layouts, player: isPerm(store.get('wt-player')) ? store.get('wt-player') : ref.layouts.original.slice() },
   };
 
@@ -121,8 +122,8 @@ async function main() {
     $('layoutDesc').textContent = LAYOUTS.find((l) => l.k === S.view).d;
     $('copyRow').classList.toggle('hidden', S.view === 'player');
     select(-1);
-    paintRacks(); paintTraffic(); renderLegend(); renderScoreboard();
-    $('cCompareBox').classList.toggle('hidden', S.view === 'original');
+    paintRacks(); paintTraffic(); renderLegend(); renderScoreboard(); scheduleTeam();
+    $('cCompareBox').classList.toggle('hidden', S.view === 'original' && S.pickers === 1);
     resetReplay();
   }
   function setView(k) { S.view = k; applyView(); }
@@ -191,8 +192,9 @@ async function main() {
     store.set('wt-player', S.layouts.player);
     for (const m of ['single', 'batch', 'smart']) delete trafficCache[`player|${m}`];
     delete tripCache['smart|player'];
+    forgetTeam('player');
     if (S.mode === 'smart') score('player');
-    paintRacks(); paintTraffic(); renderScoreboard(); resetReplay();
+    paintRacks(); paintTraffic(); renderScoreboard(); resetReplay(); scheduleTeam();
   }
   function swap(a, b, record) {
     const L = S.layouts.player, before = scores.player.dist;
@@ -290,6 +292,7 @@ async function main() {
   function applyOptLayout(layout) {
     S.layouts.player = layout.slice(); S.history = [];
     delete tripCache['smart|player'];
+    forgetTeam('player');
     score('player');
     if (S.view === 'player') paintRacks();
     renderScoreboard();
@@ -334,6 +337,60 @@ async function main() {
     };
   });
   $('optStop').addEventListener('click', () => { $('optStatus').textContent = 'stopped'; stopOptimizer('Optimizer stopped. Kept the best layout found so far.'); });
+
+  // ---------- team of pickers: whole-month runs with aisle congestion (sim/multi.js) ----------
+  const TEAM_COLORS = ['#e0442a', '#2340b8', '#2e7d4f', '#a8307e', '#c98a00', '#3b3f45'];
+  const planCache = {}, teamCache = {};
+  const plansOf = (k) => (planCache[`${k}|${S.mode}`] ||= planTrips(wh, S.layouts[k], trips(k)));
+  const team = (k, n) => (teamCache[`${k}|${S.mode}|${S.cap}|${n}`] ||= runTeam(wh, plansOf(k), { pickers: n, cap: S.cap }));
+  const forgetTeam = (k) => {
+    for (const c of [planCache, teamCache]) for (const key of Object.keys(c)) if (key.startsWith(`${k}|`)) delete c[key];
+  };
+  $('pickerButtons').innerHTML = [1, 2, 3, 4, 5, 6].map((n) => `<button data-n="${n}">${n}</button>`).join('');
+  const hrs = (h) => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+  function renderTeam() {
+    document.querySelectorAll('#pickerButtons button').forEach((b) => b.classList.toggle('on', +b.dataset.n === S.pickers));
+    document.querySelectorAll('#capButtons button').forEach((b) => b.classList.toggle('on', +b.dataset.cap === S.cap));
+    const n = S.pickers, base = team('original', n);
+    $('teamTable').innerHTML = '<tr><th>Layout</th><th>month in</th><th>orders/h</th><th>waiting</th><th>vs Orig.</th></tr>'
+      + LAYOUTS.map(({ k, n: name }) => {
+        const r = team(k, n), gain = r.ordersPerHour / base.ordersPerHour - 1;
+        const cls = `${k === S.view ? 'cur' : ''} ${k === 'player' ? 'player' : ''}`;
+        return `<tr class="${cls}"><td>${name}</td><td>${hrs(r.hours)} h</td><td>${fmt(r.ordersPerHour, 1)}</td>
+          <td class="${r.waitShare > 0.15 ? 'worse' : ''}">${fmt(r.waitShare * 100, 1)}%</td>
+          <td>${k === 'original' ? '<span class="k">–</span>' : `<span class="${gain >= 0 ? 'saved' : 'worse'}">${gain >= 0 ? '+' : '−'}${fmt(Math.abs(gain) * 100, 1)}%</span>`}</td></tr>`;
+      }).join('');
+    // chart: orders per hour vs team size for the layout on screen, against perfect scaling
+    const c = $('teamChart'), g = c.getContext('2d'), W = c.width, H = c.height, padL = 40, padB = 26, padT = 12;
+    const rows = [1, 2, 3, 4, 5, 6].map((m) => team(S.view, m)), one = rows[0].ordersPerHour;
+    const top = one * 6 * 1.05, X = (m) => padL + ((m - 1) / 5) * (W - padL - 16), Y = (v) => padT + (H - padT - padB) * (1 - v / top);
+    g.clearRect(0, 0, W, H);
+    g.font = "500 17px Bahnschrift, 'Segoe UI', sans-serif"; g.fillStyle = '#7d786c'; g.textAlign = 'center';
+    for (let m = 1; m <= 6; m++) g.fillText(m, X(m), H - 6);
+    g.textAlign = 'right';
+    for (const v of [0, 50, 100, 150]) if (v < top) { g.fillText(v, padL - 8, Y(v) + 5); g.fillStyle = '#e7e1d4'; g.fillRect(padL, Y(v), W - padL - 16, 1); g.fillStyle = '#7d786c'; }
+    g.lineWidth = 2.5; g.setLineDash([8, 6]); g.strokeStyle = '#7d786c';
+    g.beginPath(); g.moveTo(X(1), Y(one)); g.lineTo(X(6), Y(one * 6)); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = '#e0442a'; g.lineWidth = 4; g.beginPath();
+    rows.forEach((r, i) => (i ? g.lineTo : g.moveTo).call(g, X(i + 1), Y(r.ordersPerHour))); g.stroke();
+    g.fillStyle = '#e0442a';
+    rows.forEach((r, i) => { g.beginPath(); g.arc(X(i + 1), Y(r.ordersPerHour), i + 1 === n ? 7 : 4, 0, 7); g.fill(); });
+    g.textAlign = 'left'; g.fillStyle = '#7d786c'; g.fillText('perfect scaling', X(4.3), Y(one * 5.2) - 4);
+    const r = rows[n - 1], loss = 1 - r.ordersPerHour / (one * n);
+    $('teamNote').innerHTML = `Orders per hour vs pickers (${LAYOUTS.find((l) => l.k === S.view).n}). With ${n} picker${n > 1 ? 's' : ''} in ${S.cap === 1 ? 'narrow' : 'wide'} aisles, `
+      + (n === 1 ? 'nobody waits.' : `<b>${fmt(loss * 100, 0)}%</b> of the team's capacity is lost to queueing at aisles.`)
+      + ` Backlog model: the month's ${fmt(orders.length)} orders queue up, each picker takes the next trip at the dock.`;
+  }
+  let teamTimer = 0;
+  const scheduleTeam = () => { clearTimeout(teamTimer); teamTimer = setTimeout(renderTeam, 30); };
+  $('pickerButtons').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.pickers = +b.dataset.n; resetReplay(); scheduleTeam();
+  });
+  $('capButtons').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.cap = +b.dataset.cap; resetReplay(); scheduleTeam();
+  });
 
   // ---------- replay (animated picker) ----------
   const speedOf = (v) => Math.max(1, Math.round(Math.pow(10, (v / 100) * Math.log10(300))));
@@ -387,9 +444,11 @@ async function main() {
   let R;
   function resetReplay() {
     // the trip list and the layout are snapshotted, so the live optimizer can't desync a replay in progress
-    R = { playing: false, i: 0, done: 0, walked: 0, sim: 0, doneDist: 0, origDist: 0, P: null, trips: trips(), layout: curLayout().slice() };
+    R = { playing: false, i: 0, done: 0, walked: 0, sim: 0, doneDist: 0, origDist: 0, P: null, trips: trips(), layout: curLayout().slice(), team: null };
     const d = wh.pos[wh.DOCK];
     scene.setPicker(d[0], d[1], Math.PI, false);
+    // team mode: everyone lines up at the dock until play is pressed
+    scene.setTeam(S.pickers > 1 ? Array.from({ length: S.pickers }, (_, i) => ({ x: d[0] + (i - (S.pickers - 1) / 2) * 1.1, z: d[1], heading: Math.PI })) : null);
     scene.setRoute([]); showPending([]);
     IOT.log = []; IOT.buf = []; IOT.dirty = true;
     $('orderCard').classList.add('hidden');
@@ -430,6 +489,19 @@ async function main() {
       const s = wh.slots[slotOf[p]];
       iot('ptl', `PTL-${s.label}`, `ON · ${products[p].code} qty ${qty.get(p)}`, { event: 'light_on', slot: s.label, sku: products[p].code, qty: qty.get(p) });
     }
+  }
+
+  function renderTeamCard() {
+    const T = R.team, zone = (p) => {
+      const n = p.plan && p.plan.nodes[Math.min(p.i + 1, p.plan.nodes.length - 1)];
+      const a = n === undefined ? -1 : T.aisleOf(n);
+      return a >= 0 ? `aisle ${wh.cfg.aisles - a}` : 'cross-aisle';
+    };
+    $('orderCard').innerHTML = `<h3>Team of ${T.P.length} pickers</h3><div class="meta">${S.cap === 1 ? 'narrow aisles · 1 cart per aisle' : 'wide aisles · 2 carts per aisle'} · trip ${fmt(Math.min(T.next, R.trips.length))} / ${fmt(R.trips.length)}</div><ul>`
+      + T.P.map((p) => {
+        const st = p.idle ? 'done, back at dock' : p.waiting ? `waiting: ${zone(p)} is full` : p.dwell > 0 ? `picking in ${zone(p)}` : `walking · ${p.plan.trip.orders.length > 1 ? 'batch' : `order ${p.plan.trip.orders[0]}`}`;
+        return `<li class="${p.waiting ? 'wait' : 'done'}"><span class="tdot" style="background:${TEAM_COLORS[p.id]}">${p.id + 1}</span><span>${st}</span><span class="q">${fmt(p.waited / 60, 0)} min</span></li>`;
+      }).join('') + '</ul><div class="meta" style="margin:8px 0 0">right column = minutes spent waiting so far</div>';
   }
 
   function renderOrderCard(tripOrders, qty) {
@@ -474,7 +546,24 @@ async function main() {
     startTrip();
   }
 
+  function stepTeam(sec) {
+    const T = R.team;
+    T.advance(sec);
+    for (const ev of T.events) {
+      const cart = `C-0${ev.picker + 1}`;
+      if (ev.type === 'out') iot('rfid', 'DOCK-GATE', `cart ${cart} out · ${ev.trip.orders.join(', ')}`, { event: 'cart_out', cart, orders: ev.trip.orders });
+      else if (ev.type === 'in') iot('rfid', 'DOCK-GATE', `cart ${cart} in · ${ev.trip.lines} line${ev.trip.lines === 1 ? '' : 's'}`, { event: 'cart_in', cart, lines: ev.trip.lines });
+      else if (ev.type === 'blocked') iot('uwb', `UWB-TAG ${cart}`, `waiting · aisle ${wh.cfg.aisles - ev.aisle} occupied`, { event: 'aisle_blocked', cart, aisle: wh.cfg.aisles - ev.aisle });
+      else if (ev.type === 'enter') iot('uwb', `UWB-TAG ${cart}`, `enters aisle ${wh.cfg.aisles - ev.aisle}`, { event: 'aisle_enter', cart, aisle: wh.cfg.aisles - ev.aisle });
+    }
+    T.events.length = 0;
+    R.done = T.ordersDone; R.walked = T.walked; R.sim = T.t;
+    scene.setTeam(T.P);
+    if (T.finished) { R.playing = false; $('play').textContent = '✓ Month replayed'; }
+  }
+
   function step(dt) {
+    if (R.team) { if (R.playing) stepTeam(dt * speed); return; }
     if (!R.playing || !R.P) return;
     let sim = dt * speed;
     const ws = wh.cfg.walkSpeed;
@@ -515,7 +604,14 @@ async function main() {
     $('cOrders').textContent = `${fmt(R.done)} / ${fmt(orders.length)}`;
     $('cDist').textContent = `${fmt(R.walked)} m`;
     $('cTime').textContent = hms(R.sim);
-    if (R.done > 0 && S.view !== 'original') {
+    $('cCompareK').textContent = R.team || S.pickers > 1 ? 'Team · waiting at aisles' : 'Same orders on Original';
+    $('cCompareBox').classList.toggle('hidden', S.pickers === 1 && S.view === 'original');
+    if (R.team) {
+      const st = R.team.stats();
+      $('cCompare').innerHTML = `${fmt(st.waitShare * 100, 1)}% <span class="k" style="font-size:13px">· ${fmt(st.ordersPerHour, 1)} orders/h</span>`;
+      renderTeamCard();
+    } else if (S.pickers > 1) $('cCompare').textContent = '–';
+    else if (R.done > 0 && S.view !== 'original') {
       const saved = 1 - R.doneDist / R.origDist;
       $('cCompare').innerHTML = `${fmt(R.origDist)} m <span class="${saved >= 0 ? 'saved' : 'worse'}" style="font-size:13px">(${saved >= 0 ? '−' : '+'}${fmt(Math.abs(saved) * 100, 1)}% here)</span>`;
     } else $('cCompare').textContent = '–';
@@ -523,12 +619,26 @@ async function main() {
 
   $('play').addEventListener('click', togglePlay);
   function togglePlay() {
+    if (S.pickers > 1) {
+      if (R.team && R.team.finished) resetReplay();
+      R.team ||= new MultiSim(wh, planTrips(wh, R.layout, R.trips), { pickers: S.pickers, cap: S.cap });
+      R.playing = !R.playing;
+      $('play').textContent = R.playing ? '❚❚ Pause' : '▶ Resume';
+      if (R.playing) $('orderCard').classList.remove('hidden');
+      return;
+    }
     if (!R.P && R.i >= R.trips.length) resetReplay();
     R.playing = !R.playing;
     if (R.playing && !R.P) startTrip();
     $('play').textContent = R.playing ? '❚❚ Pause' : '▶ Resume';
   }
   $('stepOrder').addEventListener('click', () => {
+    if (S.pickers > 1) { // run the team until the next trip comes back to the dock
+      R.team ||= new MultiSim(wh, planTrips(wh, R.layout, R.trips), { pickers: S.pickers, cap: S.cap });
+      const target = R.team.done + 1;
+      for (let g = 0; g < 4000 && !R.team.finished && R.team.done < target; g++) stepTeam(1);
+      $('orderCard').classList.remove('hidden'); renderCounters(); return;
+    }
     if (!R.P) startTrip();
     if (R.P) { finishTrip(); placePicker(); renderCounters(); }
   });
@@ -550,6 +660,7 @@ async function main() {
     else if (e.key === 'b') { const next = { single: 'batch', batch: 'smart', smart: 'single' }[S.mode]; document.querySelector(`#modeButtons button[data-mode=${next}]`).click(); }
     else if (e.key === 'i') { $('iotToggle').click(); }
     else if (e.key === 'o') { $('optRun').click(); }
+    else if (e.key === 'p') { document.querySelector(`#pickerButtons button[data-n="${(S.pickers % 6) + 1}"]`).click(); }
     else if (e.key === 'Escape') select(-1);
   });
 
@@ -576,7 +687,7 @@ async function main() {
       The gains carry over to future orders.</p>
     <p><b>Affinity</b> weight w = ${ref.meta.affinityW} (picked by replay). <b>Optimizer</b>: ${fmt(ref.meta.saIterations)} iterations,
       ${fmt(ref.meta.saAccepted)} swaps accepted, ${fmt(ref.meta.saSeconds, 0)} s offline.</p>
-    <p class="note">Shortcuts: <kbd>Space</kbd> play/pause · <kbd>1</kbd>–<kbd>5</kbd> layouts · <kbd>H</kbd> traffic · <kbd>B</kbd> batch mode · <kbd>I</kbd> IoT · <kbd>O</kbd> optimizer · <kbd>Esc</kbd> deselect</p>`;
+    <p class="note">Shortcuts: <kbd>P</kbd> pickers · <kbd>Space</kbd> play/pause · <kbd>1</kbd>–<kbd>5</kbd> layouts · <kbd>H</kbd> traffic · <kbd>B</kbd> batch mode · <kbd>I</kbd> IoT · <kbd>O</kbd> optimizer · <kbd>Esc</kbd> deselect</p>`;
 
   // URL presets for the demo screen, e.g. ?view=affinity&batch=1&traffic=1&play=1&speed=80
   const q = new URLSearchParams(location.search);
@@ -587,6 +698,8 @@ async function main() {
     document.querySelectorAll('#modeButtons button').forEach((x) => x.classList.toggle('on', x.dataset.mode === qMode));
   }
   if (q.get('iot') === '1') $('iotToggle').click();
+  if (/^[1-6]$/.test(q.get('pickers') || '')) S.pickers = +q.get('pickers');
+  if (q.get('cap') === '2') S.cap = 2;
   if (q.get('traffic') === '1') { S.traffic = true; $('trafficToggle').checked = true; }
   if (q.has('speed') && isFinite(+q.get('speed'))) { $('speed').value = Math.max(0, Math.min(100, +q.get('speed'))); speed = speedOf(+$('speed').value); showSpeed(); }
 
