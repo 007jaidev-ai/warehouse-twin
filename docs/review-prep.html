@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Warehouse Digital Twin: Review Prep Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink:#16202c; --muted:#5b6b7d; --line:#d9e0e8; --accent:#0b7fab; --orange:#d9661b; --soft:#f3f6f9; --good:#137a4b; --bad:#b3261e; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Inter, Arial, sans-serif; color: var(--ink); font-size: 10.4pt; line-height: 1.5; margin: 0; }
+  h1 { font-size: 19pt; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2.5px solid var(--accent); break-before: auto; break-after: avoid; margin-top: 9mm; letter-spacing: -0.01em; }
+  h1 .n { color: var(--accent); margin-right: 6px; }
+  h2 { font-size: 12.5pt; margin: 6mm 0 2mm; color: var(--accent); break-after: avoid; }
+  h3 { font-size: 10.8pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+  p { margin: 0 0 2.4mm; }
+  ul, ol { margin: 0 0 2.6mm; padding-left: 5.5mm; }
+  li { margin: 0.6mm 0; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; background: var(--soft); padding: 0 3px; border-radius: 3px; }
+  pre { font-family: Consolas, "Cascadia Mono", monospace; font-size: 8.6pt; line-height: 1.42; background: #0f1a26; color: #e3ecf5; padding: 3mm 3.5mm; border-radius: 6px; margin: 1.5mm 0 3mm; white-space: pre-wrap; break-inside: avoid; }
+  pre .c { color: #8fb3cf; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 3.5mm; font-size: 9.6pt; }
+  tr { break-inside: avoid; }
+  th { text-align: left; background: var(--soft); font-weight: 600; padding: 1.6mm 2mm; border-bottom: 1.5px solid var(--line); }
+  td { padding: 1.4mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: #f7fafc; padding: 3mm 4mm; border-radius: 4px; margin: 2mm 0 3.5mm; break-inside: avoid; }
+  .box.say { border-left-color: var(--orange); background: #fff8f2; }
+  .box.warn { border-left-color: var(--bad); background: #fdf4f3; }
+  .box .t { font-weight: 700; display: block; margin-bottom: 1mm; }
+  .qa { break-inside: avoid; margin: 0 0 2.6mm; }
+  .qa .q { font-weight: 700; }
+  .qa .q::before { content: "Q  "; color: var(--orange); }
+  .qa .a::before { content: "A  "; color: var(--accent); font-weight: 700; }
+  .muted { color: var(--muted); }
+  .good { color: var(--good); font-weight: 600; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  img { width: 78%; display:block; margin:0 auto; border-radius: 5px; border: 1px solid var(--line); }
+  figure { margin: 2mm 0 4mm; break-inside: avoid; }
+  figcaption { text-align:center; font-size: 8.8pt; color: var(--muted); margin-top: 1mm; }
+  .cover { break-after: page; height: 255mm; display: flex; flex-direction: column; }
+  .cover .kicker { color: var(--accent); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 9.5pt; margin-top: 18mm; }
+  .cover h0 { display:block; font-size: 30pt; font-weight: 800; line-height: 1.1; margin: 3mm 0 3mm; letter-spacing: -0.02em; }
+  .cover .sub { font-size: 12.5pt; color: var(--muted); max-width: 150mm; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 9mm 0 6mm; }
+  .stat { border: 1px solid var(--line); border-radius: 6px; padding: 3mm; }
+  .stat b { display: block; font-size: 17pt; color: var(--ink); }
+  .stat span { font-size: 8.8pt; color: var(--muted); }
+  .toc { columns: 2; font-size: 10pt; margin-top: 4mm; }
+  .toc div { break-inside: avoid; padding: 0.8mm 0; }
+  .toc b { color: var(--accent); display: inline-block; width: 7mm; }
+  .pill { display: inline-block; font-size: 8.5pt; padding: 0 2mm; border-radius: 8px; background: var(--soft); border: 1px solid var(--line); margin-right: 1mm; }
+  .diagram { font-family: Consolas, monospace; font-size: 8.4pt; line-height: 1.3; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 3mm; white-space: pre; break-inside: avoid; margin: 2mm 0 3.5mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<section class="cover">
+  <div class="kicker">ELECTRO-SOLVE 2026 · PS 4.2 · Review prep guide</div>
+  <h0>Warehouse Digital Twin:<br>3D Picking Floor Game</h0>
+  <p class="sub">Everything you need to explain and defend the project: architecture, every decision, the code layer by layer, the numbers, the demo script and the hard questions.</p>
+
+  <div class="stats">
+    <div class="stat"><b>2,293</b><span>real orders replayed (Nov 2010, UCI Online Retail II)</span></div>
+    <div class="stat"><b>−2.5%</b><span>walking saved by ABC (intuition)</span></div>
+    <div class="stat"><b>−11.3%</b><span>saved by Affinity slotting (data insight)</span></div>
+    <div class="stat"><b>−15.8%</b><span>saved by Optimized layout (simulated annealing)</span></div>
+  </div>
+
+  <div class="box say"><span class="t">The 30-second pitch (memorise this)</span>
+  “Pickers in a warehouse spend more time walking than picking, and where each product sits decides how far they walk. We built a 3D digital twin of a picking floor that is driven by <b>2,293 real customer orders</b>. You can rearrange the shelves, and the twin <b>replays exactly the same orders</b> to measure the walking saved, rather than just claiming it. The textbook fix, putting best-sellers near the dock, saves only 2.5%. Using what customers <i>buy together</i> saves 11%, our optimizer finds 16%, and the savings hold on a week of orders the model never saw. Visitors can play against the optimizer.”</div>
+
+  <h2 style="margin-top:6mm">Contents</h2>
+  <div class="toc">
+    <div><b>1</b>Architecture &amp; the 10 key decisions</div>
+    <div><b>2</b>Layer: data pipeline (preprocess.py)</div>
+    <div><b>3</b>Layer: warehouse graph (warehouse.js)</div>
+    <div><b>4</b>Layer: routing &amp; scoring (route.js)</div>
+    <div><b>5</b>Layer: layouts &amp; optimizer (layouts.js, optimize.mjs)</div>
+    <div><b>6</b>Layer: 3D scene (scene.js)</div>
+    <div><b>7</b>Layer: app, game &amp; replay (main.js)</div>
+    <div><b>8</b>Results: every number you may be asked</div>
+    <div><b>9</b>Demo script &amp; morning checklist</div>
+    <div><b>10</b>Question bank (hard questions + answers)</div>
+    <div><b>11</b>Limitations &amp; future work</div>
+    <div><b>12</b>Glossary</div>
+  </div>
+  <p class="muted" style="margin-top:auto;font-size:9pt">Project folder: C:\Users\007ja\warehouse-twin · Run: double-click start-demo.bat (offline) or <code>cd web</code> → <code>npm run dev</code>.</p>
+</section>
+
+<!-- ============================ 1 ARCHITECTURE ============================ -->
+<h1><span class="n">1</span>Architecture &amp; the 10 key decisions</h1>
+
+<div class="diagram">  online_retail_II.xlsx (~1M lines)
+          │  once, offline
+          ▼
+  preprocess.py  (Python + pandas)   clean → top 100 products → orders
+          │  products.json · orders.json · stats.json
+          ▼
+  ┌───────────────── SIMULATION CORE  web/src/sim/  (plain JavaScript) ─────────────────┐
+  │ warehouse.js  floor as a graph + all shortest paths                                 │
+  │ route.js      route each trip (dock → picks → dock) and score a layout              │
+  │ layouts.js    Original · ABC · Affinity                                             │
+  └────────────┬───────────────────────────────────────────────┬───────────────────────┘
+     same code │                                     same code │
+               ▼                                               ▼
+  optimize.mjs (Node, offline)                      Browser app (Vite + Three.js)
+  simulated annealing → layouts.json  ───────────►  scene.js  3D floor, picker, heatmaps
+  + hold-out test                                   main.js   scoreboard, game, replay</div>
+
+<p><b>One sentence:</b> Python turns raw orders into clean JSON once. A <b>single shared JavaScript simulation core</b> routes and scores any layout. It is used offline to compute the optimized layout and live in the browser to score the player's layout.</p>
+
+<h2>The 10 decisions and why</h2>
+<table>
+<tr><th style="width:28%">Decision</th><th>Why (what to say)</th></tr>
+<tr><td>1. Pre-process offline in Python</td><td>The raw file is 45 MB of Excel (~1M lines). Parsing it in a browser is slow and pointless because the result never changes. pandas is the standard tool, and the problem statement suggests it. The browser loads only ~240 KB of JSON.</td></tr>
+<tr><td>2. One month: November 2010</td><td>Pre-Christmas peak: the most orders and clear fast movers. The problem statement asks for one month.</td></tr>
+<tr><td>3. Top 100 products, ranked by <i>pick lines</i></td><td>A picker walks to a slot once per order line, whatever the quantity, so lines drive walking, not units. We model the <b>forward pick area</b> (fast-pick zone); the other products would sit in reserve storage. The top 100 are 3% of products but 22% of picks.</td></tr>
+<tr><td>4. Static website, no backend</td><td>Everything is precomputed or cheap: scoring a full month takes milliseconds. It runs <b>fully offline</b> (expo Wi-Fi risk) and can be deployed free.</td></tr>
+<tr><td>5. ⭐ One shared simulation core</td><td>The optimizer (Node) and the game (browser) use the <i>same</i> <code>route.js</code>, so the numbers are identical (218.1 / 212.7 / 193.4 / 183.7 km). Every layout is judged by the same rules on the same orders. This is the “measured, not claimed” requirement.</td></tr>
+<tr><td>6. Scoring separate from animation</td><td>Scoring replays the whole month instantly and feeds the scoreboard. The animation shows the same routes one order at a time for people. That's why a swap rescored instantly.</td></tr>
+<tr><td>7. Floor = graph, so walking follows aisles</td><td>61 nodes, 64 edges, and no edge passes through a rack, so cutting through racks is impossible <i>by construction</i>. Floyd–Warshall gives all shortest paths, plus the next hop used to draw each route.</td></tr>
+<tr><td>8. Routing: nearest-neighbour + 2-opt</td><td>Orders average 7 lines; 2-opt is near-optimal at that size. It is <b>deterministic and identical for every layout</b>, so the comparison is fair. Real pickers aren't optimal either. Exact alternative: the Ratliff–Rosenthal algorithm (future work).</td></tr>
+<tr><td>9. Our own floor parameters, stated openly</td><td>5 aisles × 2 sides × 10 bays = 100 slots for 100 products; 2 m bays, 3 m aisles, cross-aisles at front and back, dock at front centre, 1.2 m/s, 10 s per line. We tested 6 geometries and the conclusion was the same in all of them.</td></tr>
+<tr><td>10. Three.js + Vite, plain boxes</td><td>Fewer dependencies than React Three Fiber. Instanced meshes mean 300 cartons are drawn in one GPU call, so it runs smoothly on an average laptop (a watch-out in the brief).</td></tr>
+</table>
+
+<h2>The layout ladder: the story of the project</h2>
+<table>
+<tr><th>Layout</th><th>Idea</th><th>Message</th><th class="num">Walking saved</th></tr>
+<tr><td>Original</td><td>Products in stock-code order</td><td>Where we start</td><td class="num">–</td></tr>
+<tr><td>ABC</td><td>Most-picked products nearest the dock</td><td>Intuition</td><td class="num">−2.5%</td></tr>
+<tr><td>Affinity</td><td>Products bought together share an aisle</td><td>Data insight</td><td class="num">−11.3%</td></tr>
+<tr><td>Optimized</td><td>Simulated annealing over swaps, judged by replay</td><td>Algorithm</td><td class="num">−15.8%</td></tr>
+<tr><td>You</td><td>Swap racks by hand</td><td>Human vs machine</td><td class="num">live</td></tr>
+</table>
+<div class="box"><span class="t">Why ABC is weak here (the key insight)</span>
+An average order has 7 lines (median 5, max 74) spread across many products, so the picker enters most aisles regardless. Putting fast movers at the front doesn't stop that; grouping <i>co-ordered</i> products into one aisle does. This matches the warehousing literature: frequency-based slotting is strongest for small orders, and correlated slotting gains as orders grow.</div>
+
+<!-- ============================ 2 DATA ============================ -->
+<h1><span class="n">2</span>Layer: data pipeline <span class="muted" style="font-size:11pt">preprocess/preprocess.py</span></h1>
+
+<p><b>Dataset:</b> Online Retail II, UCI Machine Learning Repository, licence CC BY 4.0. It's a UK online gift wholesaler, Dec 2009 – Dec 2011, with one row per invoice line: <code>Invoice, StockCode, Description, Quantity, InvoiceDate, Price, Customer ID, Country</code>. The Excel workbook has two sheets (2009-2010 and 2010-2011).</p>
+
+<h2>Step by step</h2>
+<ol>
+<li><b>Load + cache.</b> Reading Excel is slow (~1 min per sheet), so each sheet is saved to CSV the first time and reused after that. The two sheets are concatenated and <code>drop_duplicates()</code> removes the December 2010 rows that appear in both.</li>
+<li><b>Filter to one month:</b> <code>InvoiceDate</code> formatted <code>%Y-%m == "2010-11"</code>, giving 76,584 lines and 3,669 invoices.</li>
+<li><b>Remove cancellations:</b> invoices starting with <code>"C"</code> (−1,192 lines). These are returns or credit notes, not picks.</li>
+<li><b>Remove non-product codes</b> (−282): <code>POST, DOT, M, BANK CHARGES, AMAZONFEE, D, CRUK, PADS, C2, S, B, ADJUST…</code> plus regex <code>^(gift_|TEST|DCGS|BOXCHARGE)</code>. These are postage, fees, discounts and manual adjustments; nobody walks to a shelf for them.</li>
+<li><b>Remove invalid rows</b> (−353): quantity ≤ 0, price ≤ 0, or missing description.<br>→ 74,757 clean lines, 2,719 invoices, 3,018 distinct products.</li>
+<li><b>Define a pick:</b> <code>groupby(["Invoice","StockCode"])</code>. If an invoice lists the same product twice, the picker still visits the slot once, so it becomes one line with the quantities summed.</li>
+<li><b>Rank products by number of pick lines</b> and take the top 100. Top product: White Hanging Heart T-Light Holder, 389 picks; the 100th product has 111 picks.</li>
+<li><b>Build the orders:</b> keep each invoice's lines on the top 100, sort by time. Result: <b>2,293 orders, 16,225 lines, 7.08 lines/order</b>.</li>
+</ol>
+
+<h2>Output format</h2>
+<pre><span class="c">// products.json: id = rank by picks (0 = most picked)</span>
+{ "id": 0, "code": "85123A", "name": "White Hanging Heart T-Light Holder", "picks": 389, "units": ... }
+<span class="c">// orders.json: items = [productId, quantity]</span>
+{ "id": "529995", "t": "2010-11-01 08:56", "items": [[0, 6], [57, 4]] }
+<span class="c">// stats.json: every cleaning count, shown in the app under "About the data"</span></pre>
+
+<h2>Questions on this layer</h2>
+<div class="qa"><div class="q">Why count lines and not quantity?</div><div class="a">Walking is driven by visits. Picking 24 units from one slot is one walk. Quantity affects pick time, not distance.</div></div>
+<div class="qa"><div class="q">You dropped 2,918 products, so isn't the data unrealistic?</div><div class="a">We model the forward pick area that real warehouses run for their fastest SKUs. The top 100 products are 3% of the range but carry 22% of all picks. Orders are trimmed to their lines on those products, which is why 2,719 invoices become 2,293 orders (426 had no top-100 line).</div></div>
+<div class="qa"><div class="q">Why not use both years?</div><div class="a">The brief says one month. The pipeline takes a <code>--month</code> argument, so any month can be generated in one command.</div></div>
+<div class="qa"><div class="q">How do you know the cleaning is right?</div><div class="a">Every removal is counted and shown (stats.json and the app's About panel), and the top products match known best-sellers in this dataset.</div></div>
+
+<!-- ============================ 3 WAREHOUSE ============================ -->
+<h1><span class="n">3</span>Layer: the warehouse graph <span class="muted" style="font-size:11pt">web/src/sim/warehouse.js</span></h1>
+
+<h2>Geometry (metres)</h2>
+<div class="diagram">        back cross-aisle (z = 21.5) ──────────────────────────────────────────
+   z    R|A|R R|A|R R|A|R R|A|R R|A|R      R = rack 1 m deep, A = aisle 3 m wide
+   ↑    R|A|R R|A|R R|A|R R|A|R R|A|R      10 bays × 2 m = 20 m long aisles
+   │    front cross-aisle (z = −1.5) ─────────────────────────────────────────
+   └→ x                       [DOCK] (12.5, −4.5), in line with aisle 3</div>
+<ul>
+<li>Pitch per aisle = rack + aisle + rack = 1 + 3 + 1 = 5 m, so the floor is 25 m wide. Aisle centre <code>x = 2.5 + 5·a</code>.</li>
+<li>Bay <code>b</code> pick point: <code>z = 2·b + 1</code> (centre of the 2 m bay). The picker stands in the aisle centre; slots on the left and right rack share that point.</li>
+<li>Aisles are numbered so they read 1→5 left to right when looking from the dock.</li>
+</ul>
+
+<h2>The graph</h2>
+<ul>
+<li><b>Nodes:</b> per aisle a front end, 10 bay points and a back end (12 nodes) × 5 aisles, plus the dock = <b>61 nodes</b>.</li>
+<li><b>Edges:</b> along each aisle (11 × 5 = 55), front and back cross-aisle links between neighbouring aisles (4 + 4 = 8), dock to the front of aisle 3 (1) = <b>64 edges</b>. Weight = Euclidean length of that straight segment.</li>
+<li>There is <b>no edge through a rack</b>, so every shortest path is a legal walking path. That covers the brief's “distance must follow aisles” watch-out by construction.</li>
+</ul>
+
+<h2>Floyd–Warshall all-pairs shortest paths</h2>
+<pre><span class="c">// for every intermediate k, try improving i→j by going i→k→j</span>
+for k: for i: for j:
+  if dist[i][k] + dist[k][j] &lt; dist[i][j]:
+      dist[i][j] = dist[i][k] + dist[k][j]
+      next[i][j] = next[i][k]      <span class="c">// first step on the best path: used to draw routes</span></pre>
+<p>Cost is N³ = 61³ ≈ 227k steps, which is instant. The result is a <b>distance lookup table</b> (any slot to any slot in O(1)) and a <b>next-hop table</b> to rebuild the exact path for animation and the traffic heatmap. Dijkstra from every node would also work; Floyd–Warshall is simplest for a small, dense lookup.</p>
+
+<h2>Worked examples (have one ready)</h2>
+<table>
+<tr><th>Route</th><th>Calculation</th><th class="num">One way</th></tr>
+<tr><td>Dock → aisle 3, bay 1 (nearest slot)</td><td>dock→front 3 + front→bay1 (−1.5 → 1.0) 2.5</td><td class="num">5.5 m</td></tr>
+<tr><td>Dock → aisle 1, bay 1 (far left)</td><td>3 + along front cross-aisle 10 + 2.5</td><td class="num">15.5 m</td></tr>
+<tr><td>Dock → aisle 3, bay 10 (deep)</td><td>3 + (−1.5 → 19.0) 20.5</td><td class="num">23.5 m</td></tr>
+</table>
+<p>Each slot stores <code>dockDist</code>. ABC sorts slots by this value.</p>
+
+<h2>Configuration (CFG)</h2>
+<table>
+<tr><th>aisles</th><th>bays</th><th>bayW</th><th>rackD</th><th>aisleW</th><th>crossW</th><th>walkSpeed</th><th>pickSecPerLine</th><th>batchSize</th></tr>
+<tr><td>5</td><td>10</td><td>2.0 m</td><td>1.0 m</td><td>3.0 m</td><td>3.0 m</td><td>1.2 m/s</td><td>10 s</td><td>4</td></tr>
+</table>
+<div class="qa"><div class="q">Why 1.2 m/s and 10 s per line?</div><div class="a">1.2 m/s is a typical walking speed pushing a cart (free walking is ~1.4). 10 s covers reaching, scanning and placing in the tote. Both are applied identically to every layout, so they shift absolute times but not the ranking. Pick time is layout-independent, so it only dilutes the time savings.</div></div>
+<div class="qa"><div class="q">Did you tune the geometry so your method wins?</div><div class="a">No. We tested bay widths 1.2 / 2.0 / 2.7 m with 5 and 10 aisles. Compared with a random layout, ABC saved 5.7–7.8% and Affinity 11.6–14% in all six. The ordering never changed. 2.0 m is a realistic shelving bay.</div></div>
+
+<!-- ============================ 4 ROUTING ============================ -->
+<h1><span class="n">4</span>Layer: routing &amp; scoring <span class="muted" style="font-size:11pt">web/src/sim/route.js</span></h1>
+
+<h2>Definitions</h2>
+<ul>
+<li><b>Layout</b> = array <code>productAt[slot] = productId</code> (100 entries, a permutation). <code>slotOfProduct()</code> inverts it.</li>
+<li><b>Trip</b> = one walk from the dock and back. Single mode: 1 order per trip. Batch mode: 4 consecutive orders share one trip (one cart, 4 totes). <code>buildTrips()</code> merges their products (duplicates visited once) and keeps the line count.</li>
+</ul>
+
+<h2>routeNodes(): build a route through all pick points</h2>
+<pre><span class="c">// 1) nearest neighbour: from the dock, always walk to the closest unvisited pick point</span>
+tour = [DOCK]; while points left: go to closest; tour.push(DOCK)
+<span class="c">// 2) 2-opt: reverse a section of the route if that makes it shorter; repeat until nothing improves</span>
+delta = d(t[i-1], t[j]) + d(t[i], t[j+1]) - d(t[i-1], t[i]) - d(t[j], t[j+1])
+if delta &lt; 0: reverse(t[i..j])</pre>
+<ul>
+<li>Distances <code>d()</code> come from the Floyd–Warshall table, so each leg is already the shortest legal aisle path.</li>
+<li>Two products in the same bay (left and right rack) share one pick point, so it is deduplicated and visited once.</li>
+<li><b>Deterministic:</b> the same input always gives the same route, so the browser and Node agree exactly.</li>
+<li>2-opt guarantees a route with no improving segment reversal (a local optimum). For ~7 stops this is typically optimal or within a few %.</li>
+</ul>
+
+<h2>scoreLayout(): the “measured, not claimed” function</h2>
+<pre>for each trip: dist += routeNodes(pick points of its products).dist
+walkSec     = dist / 1.2
+pickSec     = lines × 10
+distPerOrder = dist / nOrders           secPerOrder = (walkSec + pickSec) / nOrders
+visits[slot] += 1 per trip that stops there   <span class="c">// → rack heatmap</span></pre>
+<p>Scoring the full month (2,293 trips) takes a few milliseconds in the browser. That is why a swap updates the scoreboard instantly.</p>
+
+<h2>edgeTraffic(): floor heatmap</h2>
+<p>For every trip, expand the route into its exact edge-by-edge path (next-hop table) and count how many times each of the 64 edges is walked. These counts colour the floor strips, normalised to the Original layout so colours compare across layouts. It shows the bottleneck at the dock end of the cross-aisle.</p>
+
+<div class="qa"><div class="q">Why not solve each route optimally?</div><div class="a">Ordering the stops is a travelling-salesman problem. An exact polynomial algorithm exists for this two-cross-aisle layout (Ratliff &amp; Rosenthal, 1983), and we list it as future work. NN + 2-opt is near-optimal for small orders, and it's what matters for fairness: <i>every layout gets the same router</i>.</div></div>
+<div class="qa"><div class="q">Could the router favour one layout?</div><div class="a">Any heuristic adds a small amount of noise, but it's applied identically, and the optimizer is scored with the same router. The ranking is consistent across geometries and on the hold-out week.</div></div>
+<div class="qa"><div class="q">Why S-shape/return routing not used?</div><div class="a">Those are simple rules for human pickers without a route. An optimising router like ours generally finds routes at least as short, while still following the aisles realistically. Comparing them is easy future work.</div></div>
+
+<!-- ============================ 5 LAYOUTS ============================ -->
+<h1><span class="n">5</span>Layer: layouts &amp; optimizer <span class="muted" style="font-size:11pt">layouts.js · scripts/optimize.mjs</span></h1>
+
+<h2>Original</h2>
+<p>Products sorted by stock code (natural sort), filled slot by slot, aisle by aisle. <b>It's a generous starting point:</b> stock codes group product families (e.g. hand-warmer designs), so Original (218.1 km) is already better than a random layout (~225.5 km). Starting from random would have made our gains look bigger.</p>
+
+<h2>ABC (velocity slotting)</h2>
+<p>Sort slots by <code>dockDist</code> (ties by slot id); sort products by picks. The most-picked product goes in the nearest slot, and so on. This is the auto baseline the brief asks for.</p>
+
+<h2>Affinity (correlated slotting)</h2>
+<ol>
+<li><b>Co-occurrence matrix</b> <code>co[i][j]</code> = number of orders containing both products i and j (100 × 100).</li>
+<li>Walk through slots from nearest to farthest. For each slot, choose the unplaced product with the best score:<br>
+<code>score(p) = picks[p] + w × Σ co[p][q] for q already placed in this slot's aisle</code></li>
+<li>With <code>w = 0</code> this is exactly ABC. Larger <code>w</code> pulls bought-together products into the same aisle.</li>
+<li><code>w</code> is chosen by replay from {0.05 … 8}. Full month: <b>w = 8</b> (the largest tried, so affinity matters a lot; a wider search is future work). In the hold-out, built on weeks 1–3: w = 1.</li>
+</ol>
+
+<h2>Optimized: simulated annealing (SA)</h2>
+<pre>start  = Affinity layout
+repeat 80,000 times:
+   pick two random slots (skip if same pick point); swap their products
+   delta = change in total walking  <span class="c">// re-route ONLY orders containing either product</span>
+   T = 40 · (0.2/40)^(it/iters)       <span class="c">// temperature cools from 40 m to 0.2 m</span>
+   accept if delta ≤ 0, or with probability e^(−delta/T)   <span class="c">// Metropolis rule</span>
+   otherwise undo the swap
+keep the best layout ever seen         <span class="c">// seed 42 → reproducible</span></pre>
+<ul>
+<li><b>Why accept worse swaps sometimes?</b> To escape local optima early on. As T falls it becomes pure hill-climbing.</li>
+<li><b>Delta evaluation</b> is the trick that makes it fast. A product appears in ~160 of 2,293 orders, so each step re-routes ~300 orders, not all of them.</li>
+<li>Run stats: 80,000 iterations, 462 swaps accepted, ~44 s on a laptop. It goes from 193.4 km (Affinity) to 183.7 km.</li>
+<li>The objective is <b>the exact same scoring function</b> as the game, so “Optimized” is optimal by the same yardstick.</li>
+</ul>
+
+<h2>Hold-out validation (anti-overfitting)</h2>
+<p>Orders before 22 Nov (1,527) are used to build ABC, Affinity and SA. Orders from 22–30 Nov (766) are used only for testing.</p>
+<table>
+<tr><th>Tested on final week</th><th class="num">km</th><th class="num">Saved vs Original</th></tr>
+<tr><td>Original</td><td class="num">74.80</td><td class="num">–</td></tr>
+<tr><td>ABC</td><td class="num">73.35</td><td class="num">−1.9%</td></tr>
+<tr><td>Affinity</td><td class="num">66.40</td><td class="num">−11.2%</td></tr>
+<tr><td>Optimized</td><td class="num">64.38</td><td class="num">−13.9%</td></tr>
+</table>
+<div class="box say"><span class="t">What to say</span>“The improvement is not memorising the month. Layouts designed on three weeks still save 11–14% on the next week's unseen orders. That's the number a warehouse manager would actually get.”</div>
+
+<div class="qa"><div class="q">Why simulated annealing and not a genetic algorithm or an ILP?</div><div class="a">Slot assignment with routing is a quadratic-assignment-type problem (NP-hard). SA is simple, needs only “score a swap”, which we already have, and is a standard choice for it. An ILP can't easily include the routing step.</div></div>
+<div class="qa"><div class="q">Is the optimized layout the global optimum?</div><div class="a">No guarantee, so we call it near-optimal, the machine's best found. That leaves room for a human to occasionally beat it, which is part of the game.</div></div>
+
+<!-- ============================ 6 SCENE ============================ -->
+<h1><span class="n">6</span>Layer: the 3D scene <span class="muted" style="font-size:11pt">web/src/scene/scene.js</span></h1>
+
+<figure><img src="shot-affinity.png"><figcaption>Affinity layout during replay: dashed route, picker with cart, order card ticking off real invoice lines, pink ◆ co-purchase hints, floor traffic heatmap.</figcaption></figure>
+
+<h2>Building blocks</h2>
+<table>
+<tr><th style="width:28%">Part</th><th>How</th></tr>
+<tr><td>Renderer / camera</td><td><code>WebGLRenderer</code> (antialias, pixel ratio ≤ 2), perspective camera, <code>OrbitControls</code> (drag to rotate, scroll to zoom, damping, can't go below the floor).</td></tr>
+<tr><td>Lighting</td><td>Hemisphere light (sky/ground fill) + one directional “sun” with a 2048² soft shadow map.</td></tr>
+<tr><td>Floor</td><td>Planes for floor, walkways, yellow safety lines, aisle labels drawn on a canvas texture.</td></tr>
+<tr><td>Racks</td><td><b>InstancedMesh</b>: 220 blue uprights, 60 orange beams, <b>300 cartons</b> (100 slots × 3 shelf levels). Each is one draw call. Carton instance <code>id = slot×3 + level</code>.</td></tr>
+<tr><td>Rack colours</td><td>Per-instance colour = visits this month (sqrt scale, min–max over all layouts so a product keeps its colour when moved). Blue = rare, red = very frequent.</td></tr>
+<tr><td>Clicking racks</td><td><b>Raycasting</b>: cast a ray from the mouse into the scene; the hit gives <code>instanceId</code>, and <code>floor(instanceId / 3)</code> is the slot. A click is distinguished from a drag by &lt;6 px of mouse movement.</td></tr>
+<tr><td>Picker</td><td>Group of capsule body (hi-vis orange), head, helmet, cart and totes. Bobs while walking and faces the direction of travel (<code>atan2(dx, dz)</code>).</td></tr>
+<tr><td>Route &amp; markers</td><td>Dashed animated line along the route; cyan cones above pending picks; pink diamonds above co-purchase partners; wireframe boxes for hover, selection and swap target.</td></tr>
+<tr><td>Traffic heatmap</td><td>One translucent strip per graph edge (64), coloured by walking passes.</td></tr>
+</table>
+<div class="qa"><div class="q">Why will it run smoothly on any laptop?</div><div class="a">About 600 boxes drawn in ~10 draw calls thanks to instancing, simple materials, one shadow light, no textures except labels. The brief explicitly asked for simple geometry.</div></div>
+<div class="qa"><div class="q">Why not use 3D models (Kenney assets)?</div><div class="a">Plain boxes were allowed, load instantly, and keep the focus on the data. Assets are a cosmetic upgrade.</div></div>
+
+<!-- ============================ 7 APP ============================ -->
+<h1><span class="n">7</span>Layer: app, game &amp; replay <span class="muted" style="font-size:11pt">web/src/main.js</span></h1>
+
+<h2>Startup</h2>
+<ol>
+<li>Fetch the 4 JSON files (products, orders, stats, layouts).</li>
+<li>Build the warehouse graph and scene, and the co-occurrence matrix (for hints).</li>
+<li>Score all 5 layouts, render the scoreboard, colour the racks.</li>
+</ol>
+
+<h2>Game mode (“You”)</h2>
+<ul>
+<li>Click rack A (selected, white frame; pink ◆ show its co-purchase partners), then rack B: products swap.</li>
+<li><code>swap()</code> swaps two entries in the array, <b>re-scores the full month</b> (milliseconds), and shows a toast like “−312 m walking per month” and the gap to ABC.</li>
+<li>Badges: <i>beats ABC → beats Affinity → beats the optimizer!</i></li>
+<li>Undo stack, “Reset to Original”, “Copy this layout into You” (start from ABC or Affinity and improve).</li>
+<li>Your layout is saved in the browser (localStorage), so it survives a refresh.</li>
+<li><b>Leaderboard:</b> name + single-order km saved locally; clicking an entry loads that layout. It works offline and needs no server.</li>
+</ul>
+
+<h2>Replay (the animated twin)</h2>
+<p>A small state machine advanced every frame by <code>dt × speed</code> (speed 1×–300×):</p>
+<ul>
+<li><b>startTrip:</b> route the next trip, expand it to a point-by-point path, mark which points are pick stops, show the order card.</li>
+<li><b>walking:</b> move along segments at 1.2 m/s of simulated time; add to “Walked”.</li>
+<li><b>arrive:</b> at a stop, tick the order lines, flash the carton, then <b>dwell</b> 10 s × lines.</li>
+<li><b>finishTrip:</b> back at the dock, add the trip's distance and the <i>same trip's</i> distance on the Original layout to the “Same orders on Original” counter. Then the next trip.</li>
+</ul>
+<p>Changing layout, mode or swapping resets the replay, so the counters always belong to one layout.</p>
+
+<h2>Demo helpers</h2>
+<ul>
+<li>Keyboard: <code>Space</code> play/pause · <code>1–5</code> layouts · <code>H</code> traffic heatmap · <code>B</code> batch · <code>Esc</code> deselect.</li>
+<li>URL presets: <code>?view=affinity&amp;play=1&amp;traffic=1&amp;speed=60</code>, <code>&amp;batch=1</code>, <code>&amp;select=40</code>.</li>
+</ul>
+
+<!-- ============================ 8 RESULTS ============================ -->
+<h1><span class="n">8</span>Results: every number you may be asked</h1>
+
+<h2>Full month, one order per trip (main result)</h2>
+<table>
+<tr><th>Layout</th><th class="num">km / month</th><th class="num">m / order</th><th class="num">time / order</th><th class="num">walking saved</th></tr>
+<tr><td>Original</td><td class="num">218.1</td><td class="num">95.1</td><td class="num">2:30</td><td class="num">–</td></tr>
+<tr><td>ABC</td><td class="num">212.7</td><td class="num">92.8</td><td class="num">2:28</td><td class="num">2.5%</td></tr>
+<tr><td>Affinity</td><td class="num">193.4</td><td class="num">84.3</td><td class="num">2:21</td><td class="num">11.3%</td></tr>
+<tr><td>Optimized</td><td class="num">183.7</td><td class="num">80.1</td><td class="num">2:18</td><td class="num">15.8%</td></tr>
+</table>
+
+<h2>Batch picking (4 orders per trip)</h2>
+<table>
+<tr><th>Layout</th><th class="num">km / month</th><th class="num">m / order</th><th class="num">time / order</th><th class="num">walking saved</th></tr>
+<tr><td>Original</td><td class="num">88.2</td><td class="num">38.5</td><td class="num">1:43</td><td class="num">–</td></tr>
+<tr><td>ABC</td><td class="num">88.0</td><td class="num">38.4</td><td class="num">1:43</td><td class="num">0.2%</td></tr>
+<tr><td>Affinity</td><td class="num">84.4</td><td class="num">36.8</td><td class="num">1:41</td><td class="num">4.3%</td></tr>
+<tr><td>Optimized</td><td class="num">82.7</td><td class="num">36.1</td><td class="num">1:41</td><td class="num">6.3%</td></tr>
+</table>
+
+<div class="cols">
+<div class="box"><span class="t">Translate to real life</span>
+Optimized vs Original saves 34 km of walking per month, about 7.9 hours of picker time (34,400 m ÷ 1.2 m/s) for this one zone. Batch picking alone cuts walking by 60% (218 → 88 km).</div>
+<div class="box"><span class="t">Why time % &lt; distance %</span>
+Per order: ~79 s walking + ~71 s picking (7.1 lines × 10 s). Slotting only shrinks the walking part, so 15.8% less walking means ~8% less total time.</div>
+</div>
+
+<figure><img src="shot-batch.png"><figcaption>Batch mode: one cart serves 4 real invoices; the route sweeps the floor via the back cross-aisle, so slotting matters less.</figcaption></figure>
+
+<h2>Data facts</h2>
+<table>
+<tr><td>Raw lines / invoices (Nov 2010)</td><td class="num">76,584 / 3,669</td><td>Top product</td><td class="num">T-Light Holder, 389 picks</td></tr>
+<tr><td>Cancelled · non-product · invalid removed</td><td class="num">1,192 · 282 · 353</td><td>100th product</td><td class="num">111 picks</td></tr>
+<tr><td>Clean lines / invoices / products</td><td class="num">74,757 / 2,719 / 3,018</td><td>Lines per order</td><td class="num">mean 7.1, median 5, max 74</td></tr>
+<tr><td>Top-100 share of picks</td><td class="num">22.1%</td><td>Single-line orders</td><td class="num">332</td></tr>
+</table>
+
+<!-- ============================ 9 DEMO ============================ -->
+<h1><span class="n">9</span>Demo script &amp; morning checklist</h1>
+
+<h2>3-minute walkthrough</h2>
+<table>
+<tr><th style="width:12%">Time</th><th style="width:30%">Do</th><th>Say</th></tr>
+<tr><td>0:00</td><td>Original view, Data panel open</td><td>The 30-second pitch. “This is driven by 2,293 real invoices from a UK wholesaler; here's the cleaning we did.”</td></tr>
+<tr><td>0:30</td><td>Press <b>Space</b> (Original replay, speed ~60×)</td><td>“Every order is a real invoice. The picker follows the aisles, never through racks, and the counters measure distance and time.”</td></tr>
+<tr><td>1:00</td><td>Press <b>2</b> (ABC), point at the scoreboard</td><td>“The textbook fix: best-sellers by the dock. Same orders replayed: only 2.5%. Why? Orders have 7 items, so you still visit most aisles.”</td></tr>
+<tr><td>1:25</td><td>Press <b>3</b> (Affinity), <b>H</b> heatmap</td><td>“Using what customers buy together, these items share an aisle: 11%. The heatmap shows less traffic.”</td></tr>
+<tr><td>1:50</td><td>Press <b>4</b> (Optimized)</td><td>“Our optimizer tried 80,000 swaps, each scored by replaying the month: 16%. And it holds on a week it never saw.”</td></tr>
+<tr><td>2:15</td><td>Press <b>5</b>, hand over the mouse</td><td>“Your turn: click a rack, then another. Pink diamonds show what's bought together. Can you beat ABC?”</td></tr>
+<tr><td>2:45</td><td>Press <b>B</b> (batch)</td><td>“Batch picking 4 orders per trip cuts walking 60%, a process change that beats any slotting.”</td></tr>
+</table>
+
+<h2>Checklist for the morning</h2>
+<ul>
+<li>☐ Laptop charged + charger. Close other apps for smooth 3D.</li>
+<li>☐ Start the app before the judges come: double-click <code>start-demo.bat</code> (works with Wi-Fi off). Or in VS Code: <code>cd web</code> → <code>npm run dev</code>.</li>
+<li>☐ Test once with Wi-Fi off.</li>
+<li>☐ Clear your test leaderboard entries if you want a fresh board (browser DevTools → Application → Local Storage → delete <code>wt-leaderboard</code>), or keep a few as “targets”.</li>
+<li>☐ Press “Reset to Original” on the You tab so visitors start fresh.</li>
+<li>☐ Browser fullscreen (F11). Keep this guide open on your phone.</li>
+<li>☐ Know where the files are: <code>preprocess/preprocess.py</code>, <code>web/src/sim/*</code>, <code>web/scripts/optimize.mjs</code>, <code>README.md</code>.</li>
+</ul>
+
+<!-- ============================ 10 Q BANK ============================ -->
+<h1><span class="n">10</span>Question bank</h1>
+
+<h2>Concept</h2>
+<div class="qa"><div class="q">What makes this a digital twin and not just an animation?</div><div class="a">It's driven by real operational data (orders), it simulates the physical process with real parameters (distances, speeds, pick time), and it lets you test a change (a layout) virtually and measure the outcome before doing it on the real floor. Connected to live scans, it would mirror the warehouse in real time.</div></div>
+<div class="qa"><div class="q">Where is the electronics / ECE angle?</div><div class="a">A twin needs sensors. Live inputs would be barcode/RFID scans at each pick (timestamps and locations), BLE/UWB tags on carts for indoor positioning, and pick-to-light modules on shelves. Our JSON event format is what those devices would stream. The twin is the software layer on top of that IoT hardware.</div></div>
+<div class="qa"><div class="q">Who would use this?</div><div class="a">Warehouse or e-commerce operations managers deciding re-slotting, which is normally done by gut feel or expensive WMS modules. It's also a training tool that shows staff why slotting matters.</div></div>
+
+<h2>Method</h2>
+<div class="qa"><div class="q">How do you guarantee before/after is fair?</div><div class="a">Same 2,293 orders, same router, same parameters, same code (shared module). Only the product-to-slot mapping changes.</div></div>
+<div class="qa"><div class="q">Why didn't you use straight-line distance?</div><div class="a">The brief forbids it, and it would be wrong: two slots back-to-back across a rack are 1 m apart in a straight line but can be 20+ m apart on foot. Our graph has no edges through racks.</div></div>
+<div class="qa"><div class="q">Why is ABC the baseline if it's weak?</div><div class="a">It's the standard industry baseline the brief requires (“fast movers nearest the dock”). Showing it's weak on multi-line orders is a finding, not a flaw.</div></div>
+<div class="qa"><div class="q">Is co-occurrence just correlation, so could it change next month?</div><div class="a">Yes, it shifts with season, which is why we re-run the pipeline monthly and validated on an unseen week. In practice you'd re-slot periodically.</div></div>
+<div class="qa"><div class="q">Complexity / runtime?</div><div class="a">Floyd–Warshall O(N³) with N = 61, done once. Routing per order is O(k²) per 2-opt pass, with k ≈ 7. A full-month score takes milliseconds. SA: 80k iterations × ~300 re-routed orders ≈ 44 s offline.</div></div>
+<div class="qa"><div class="q">What if two products are in the same bay on opposite sides?</div><div class="a">They share one pick point (the picker stands in the aisle), so visiting both costs no extra walking. The optimizer exploits this by pairing co-ordered products face to face.</div></div>
+
+<h2>Implementation</h2>
+<div class="qa"><div class="q">Which parts did you write vs libraries?</div><div class="a">Libraries: pandas (data), Three.js (3D rendering), Vite (build). Everything else is our own code: the cleaning rules, graph, shortest paths, router, scoring, ABC/Affinity/SA, the scene, the game and the replay.</div></div>
+<div class="qa"><div class="q">How was AI used?</div><div class="a">(Answer honestly; the event allows ethical AI use.) For example: “We used an AI coding assistant to speed up implementation; the design decisions, validation (hold-out test, geometry sensitivity) and analysis are ours, and we can explain every part.” That's why this guide exists.</div></div>
+<div class="qa"><div class="q">Can it handle a different warehouse?</div><div class="a">Yes. Change <code>CFG</code> (aisles, bays, widths, speed) and re-run <code>npm run optimize</code>. The graph, router and scene are generated from the config.</div></div>
+<div class="qa"><div class="q">Where is the data stored? Any backend?</div><div class="a">No backend. Static JSON plus the browser's localStorage for the player's layout and leaderboard. It runs offline and can be hosted free on Vercel or Cloudflare Pages.</div></div>
+
+<h2>Curveballs</h2>
+<div class="qa"><div class="q">Your Affinity weight hit the top of the search range (w = 8). Doesn't that mean you didn't search enough?</div><div class="a">Good catch. It means co-purchase matters even more than raw popularity here; a wider search may squeeze a little more. The optimizer starts from Affinity and continues the search anyway, which is how it reaches 15.8%.</div></div>
+<div class="qa"><div class="q">Only 462 of 80,000 swaps accepted. Is SA working?</div><div class="a">Yes. It starts from an already-good layout (Affinity), so most random swaps make things worse and are rejected; that is expected. The total still dropped from 193.4 to 183.7 km.</div></div>
+<div class="qa"><div class="q">Why is batch picking ABC only 0.2% better?</div><div class="a">A 4-order batch has ~28 lines, so the cart visits nearly every aisle whatever the layout. Slotting helps less once routes already cover the floor. That's a real operational insight.</div></div>
+<div class="qa"><div class="q">How accurate is your model compared with a real warehouse?</div><div class="a">It's a first-order model: distances and times scale realistically, and the relative ranking is robust (6 geometries + hold-out). Absolute minutes would need calibration with real time studies, which a deployment with scanners would provide.</div></div>
+
+<!-- ============================ 11 LIMITS ============================ -->
+<h1><span class="n">11</span>Limitations &amp; future work</h1>
+<p class="muted">Say these yourself before the judges do. It shows you understand the model.</p>
+<table>
+<tr><th style="width:42%">Limitation</th><th>Future work</th></tr>
+<tr><td>One picker, no congestion</td><td><b>Next feature:</b> several pickers; if two meet in an aisle segment one waits, and the wait adds to time.</td></tr>
+<tr><td>All slots the same size; product volume ignored</td><td>Cube-per-order index (COI) slotting with product dimensions (not in the dataset).</td></tr>
+<tr><td>Constant pick time; no shelf-height effect</td><td>Golden-zone (waist height) bonus; time studies to calibrate.</td></tr>
+<tr><td>Heuristic routing (NN + 2-opt)</td><td>Exact Ratliff–Rosenthal dynamic programme for this layout.</td></tr>
+<tr><td>Batches = 4 consecutive orders</td><td>Smart batching: cluster orders by location similarity.</td></tr>
+<tr><td>Optimizer runs offline</td><td>Run in a Web Worker so it can optimise live in the browser.</td></tr>
+<tr><td>Replays history</td><td>Live feed from barcode/RFID scanners and BLE/UWB cart tags: a true real-time twin.</td></tr>
+<tr><td>Top 100 products only</td><td>Multi-zone model: forward pick area + reserve with replenishment trips.</td></tr>
+</table>
+
+<!-- ============================ 12 GLOSSARY ============================ -->
+<h1><span class="n">12</span>Glossary</h1>
+<table>
+<tr><td style="width:24%"><b>Digital twin</b></td><td>A virtual model of a physical system, driven by its real data, used to monitor or test changes safely.</td></tr>
+<tr><td><b>SKU</b></td><td>Stock-keeping unit: one distinct product (one stock code).</td></tr>
+<tr><td><b>Pick line</b></td><td>One product on one order. The picker visits its slot once.</td></tr>
+<tr><td><b>Slotting</b></td><td>Deciding which product goes in which storage location.</td></tr>
+<tr><td><b>Forward pick area</b></td><td>Compact zone holding the fastest-moving SKUs for picking; slow ones sit in reserve.</td></tr>
+<tr><td><b>ABC / velocity slotting</b></td><td>Rank products by pick frequency (A = fastest) and put A items closest to the dock.</td></tr>
+<tr><td><b>Correlated / affinity slotting</b></td><td>Place products that are often ordered together near each other.</td></tr>
+<tr><td><b>Batch picking</b></td><td>One trip collects several orders at once (separate totes).</td></tr>
+<tr><td><b>Graph, node, edge</b></td><td>Points (aisle positions) connected by walkable segments with lengths.</td></tr>
+<tr><td><b>Floyd–Warshall</b></td><td>Algorithm that computes shortest paths between all pairs of nodes, O(N³).</td></tr>
+<tr><td><b>TSP</b></td><td>Travelling-salesman problem: shortest route visiting all given points.</td></tr>
+<tr><td><b>Nearest neighbour</b></td><td>Greedy routing: always go to the closest unvisited point.</td></tr>
+<tr><td><b>2-opt</b></td><td>Route improvement: reverse a segment if it shortens the tour; repeat until no gain.</td></tr>
+<tr><td><b>Simulated annealing</b></td><td>Search that sometimes accepts worse moves (more often when “hot”) to escape local optima, cooling over time.</td></tr>
+<tr><td><b>Metropolis rule</b></td><td>Accept a worse move with probability e<sup>−Δ/T</sup>.</td></tr>
+<tr><td><b>Delta evaluation</b></td><td>Recompute only what a move changes (affected orders), not everything.</td></tr>
+<tr><td><b>Hold-out test</b></td><td>Evaluate on data not used to build the solution, to check it generalises.</td></tr>
+<tr><td><b>InstancedMesh</b></td><td>Three.js feature to draw many copies of one shape in a single GPU call.</td></tr>
+<tr><td><b>Raycasting</b></td><td>Shooting a ray from the mouse into the 3D scene to find what was clicked.</td></tr>
+<tr><td><b>localStorage</b></td><td>Small key-value store in the browser; persists across page reloads.</td></tr>
+</table>
+
+</body>
+</html>

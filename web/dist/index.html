@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Warehouse Digital Twin</title>
+  <script type="module" crossorigin src="./assets/index-DH_r2JNq.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DMJQHAHZ.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="panel">
+      <header>
+        <h1>Warehouse Digital Twin</h1>
+        <p class="sub" id="subtitle">Loading real orders…</p>
+      </header>
+
+      <section>
+        <h2>Layout</h2>
+        <div id="layoutButtons" class="seg"></div>
+        <p id="layoutDesc" class="desc"></p>
+        <div id="copyRow" class="row hidden">
+          <button id="copyToPlayer" class="ghost">Copy this layout into “You” and edit</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="h2row">
+          <h2>Month replay scoreboard</h2>
+          <div class="seg small" id="modeButtons">
+            <button data-mode="single" class="on">1 order / trip</button>
+            <button data-mode="batch">Batch of 4</button>
+          </div>
+        </div>
+        <table id="scoreboard"></table>
+        <p class="note" id="scoreNote"></p>
+      </section>
+
+      <section id="playerSection">
+        <h2>Your layout</h2>
+        <p class="desc">Click a rack, then a second rack, to swap their products. <span class="pink">◆</span> marks the products most often bought with the one you selected.</p>
+        <div id="swapInfo" class="swapinfo">No swaps yet.</div>
+        <div class="row">
+          <button id="undo" class="ghost">Undo</button>
+          <button id="resetOriginal" class="ghost">Reset to Original</button>
+        </div>
+        <div class="row">
+          <input id="playerName" maxlength="18" placeholder="Your name" />
+          <button id="saveScore">Save to leaderboard</button>
+        </div>
+        <ol id="leaderboard"></ol>
+      </section>
+
+      <section>
+        <details>
+          <summary>About the data & model</summary>
+          <div id="about"></div>
+        </details>
+      </section>
+    </aside>
+
+    <main id="stage">
+      <div id="canvas"></div>
+
+      <div id="hud">
+        <div class="hud-controls">
+          <button id="play" class="primary">▶ Replay orders</button>
+          <button id="stepOrder" class="ghost" title="Skip to next order">⏭</button>
+          <label class="speed">Speed <input id="speed" type="range" min="0" max="100" value="50" /> <span id="speedVal"></span></label>
+        </div>
+        <div class="hud-stats">
+          <div><span class="k">Orders replayed</span><span class="v" id="cOrders">0</span></div>
+          <div><span class="k">Walked</span><span class="v" id="cDist">0 m</span></div>
+          <div><span class="k">Sim. time</span><span class="v" id="cTime">0:00:00</span></div>
+          <div id="cCompareBox"><span class="k">Same orders on Original</span><span class="v" id="cCompare">–</span></div>
+        </div>
+      </div>
+
+      <div id="orderCard" class="hidden"></div>
+
+      <div id="toolbar">
+        <label class="toggle"><input type="checkbox" id="trafficToggle" /> Floor traffic heatmap</label>
+        <button id="resetView" class="ghost small">Reset view</button>
+        <div id="legend"></div>
+      </div>
+
+      <div id="tooltip" class="hidden"></div>
+      <div id="toast" class="hidden"></div>
+    </main>
+  </div>
+</body>
+</html>

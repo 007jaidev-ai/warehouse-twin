@@ -1,0 +1,15 @@
+{
+ "month": "2010-11",
+ "raw_lines": 76584,
+ "raw_invoices": 3669,
+ "cancelled_lines_removed": 1192,
+ "non_product_lines_removed": 282,
+ "invalid_lines_removed": 353,
+ "clean_lines": 74757,
+ "clean_invoices": 2719,
+ "distinct_products": 3018,
+ "top_share_of_picks": 0.2214,
+ "orders_replayed": 2293,
+ "lines_replayed": 16225,
+ "avg_lines_per_order": 7.08
+}
