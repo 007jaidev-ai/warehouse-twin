@@ -25,7 +25,7 @@ npm run build && npm run preview   # offline demo build -> http://localhost:4173
 On Windows you can double-click `start-demo.bat`, which builds and serves the app offline.
 
 URL presets for the demo screen: `?view=affinity&batch=1&traffic=1&play=1&speed=60`.
-Keyboard: `Space` play/pause · `1`–`5` layouts · `H` floor heatmap · `B` batch mode · `I` IoT mode · `O` optimizer · `Esc` deselect.
+Keyboard: `Space` play/pause · `P` pickers 1–6 · `1`–`5` layouts · `H` floor heatmap · `B` batch mode · `I` IoT mode · `O` optimizer · `Esc` deselect.
 
 ## Data pre-processing (`preprocess/preprocess.py`)
 
@@ -117,9 +117,28 @@ so the picker still visits most aisles. Using *which products are bought togethe
   UWB cart tag positions, pick-to-light ON/OFF per slot (green lamps on the racks), barcode pick confirmations.
   Live feed on screen; download the log as JSON Lines.
 
-URL: `?iot=1`, `?batch=smart`, `?view=player&opt=1`.
+URL: `?iot=1`, `?batch=smart`, `?view=player&opt=1`, `?pickers=4&cap=2`.
 
-**Planned:** several pickers with aisle congestion.
+- **Team of pickers** (`src/sim/multi.js`): 1–6 pickers clear the month's backlog from one queue. A narrow
+  aisle holds one cart (wide: two); a picker reaching a full aisle waits at its entrance. Watch the team in 3D
+  (numbered pickers, pulsing ring while queued, per-picker status card, `aisle_blocked` IoT events) and compare
+  layouts in the "Team of pickers" panel.
+
+### Results: a team of pickers (`node scripts/congestion.mjs`)
+
+Optimized layout, orders per hour (time spent waiting at aisles):
+
+| Pickers | Narrow aisles (1 cart) | Wide aisles (2 carts) | Perfect scaling |
+|---|---|---|---|
+| 1 | 26.2 (0%) | 26.2 (0%) | 26.2 |
+| 2 | 48.0 (8%) | 52.4 (0%) | 52.4 |
+| 4 | 80.8 (23%) | 102.3 (2%) | 104.8 |
+| 6 | 101.4 (35%) | 146.0 (7%) | 157.2 |
+
+With 4 pickers in narrow aisles the team loses 23% of its capacity to queueing, and the month takes 22.6 h with 6 pickers
+instead of 15.7 h in wide aisles. Concentrating picks also concentrates people: the Optimized layout beats Original by
++9% with one picker but only +5% with six. Once there is a team, aisle width and batching matter as much as slotting.
+At N = 1 the model reproduces the single-picker replay exactly (2,293 orders × 150 s = 95.6 h on Original).
 
 ## Design
 
@@ -170,7 +189,15 @@ python build/prep_assets.py
 python build/build_deck.py      # -> ElectroSolve_2026_Warehouse_Digital_Twin.pptx (11 slides, Morph transitions)
 powershell -File build/render.ps1   # optional: PNG of every slide via PowerPoint
 msedge --headless --no-pdf-header-footer --print-to-pdf=ElectroSolve_2026_A3_Poster.pdf build/poster.html
+node web/scripts/congestion.mjs     # team-of-pickers study -> web/public/data/congestion.json
+python build/build_official_poster.py   # official SENSE template -> ElectroSolve_2026_Official_Poster_GitHappens.pptx
 ```
+
+Two posters: `ElectroSolve_2026_A3_Poster.pdf` (designed) and `ElectroSolve_2026_Official_Poster_GitHappens.pptx/.pdf`
+(the official SENSE template `25EUEC1001HW-Poster-Template.pptx`: same sections, Calibri sizes, red frame and VIT logo;
+tables, chart and pipeline diagram are native PowerPoint objects).
+
+Team GitHappens: Rohith Krishna A K (25BCE2027), Jaidev A (25BCE0971). Guide: Dr. Jaffino, SENSE, VIT.
 
 ## Stack
 

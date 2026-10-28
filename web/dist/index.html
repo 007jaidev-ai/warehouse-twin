@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f3eee3" />
   <title>Picking Floor Twin</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231f2226'/%3E%3Crect x='7' y='7' width='4' height='18' fill='%23e0442a'/%3E%3Crect x='14' y='7' width='4' height='18' fill='%23f3eee3'/%3E%3Crect x='21' y='7' width='4' height='18' fill='%23f3eee3'/%3E%3C/svg%3E" />
-  <script type="module" crossorigin src="./assets/index-CtGzlLqr.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Bc-ZpZcr.css">
+  <script type="module" crossorigin src="./assets/index-C4H0Omxz.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BfhPjXb-.css">
 </head>
 <body>
   <div id="app">
@@ -64,9 +64,24 @@
         <ol id="leaderboard"></ol>
       </section>
 
+      <section id="teamSection">
+        <div class="h2row">
+          <h2><i>04</i>Team of pickers</h2>
+          <div class="seg small" id="capButtons">
+            <button data-cap="1" class="on" title="One cart fills an aisle: other pickers queue at the entrance">Narrow aisle</button>
+            <button data-cap="2" title="Two carts can pass each other">Wide</button>
+          </div>
+        </div>
+        <div class="pickrow"><span class="lbl">Pickers on the floor</span><div class="seg small" id="pickerButtons"></div></div>
+        <p class="desc tight">Several pickers clear the month's backlog together. A full aisle makes the next picker wait at its entrance, so adding people stops adding speed. Press ▶ to watch the team.</p>
+        <table id="teamTable"></table>
+        <canvas id="teamChart" width="560" height="170"></canvas>
+        <p class="note" id="teamNote"></p>
+      </section>
+
       <section>
         <details>
-          <summary><i>04</i>About the data &amp; model</summary>
+          <summary><i>05</i>About the data &amp; model</summary>
           <div id="about"></div>
         </details>
       </section>
@@ -85,7 +100,7 @@
           <div><span class="k">Orders replayed</span><span class="v" id="cOrders">0</span></div>
           <div><span class="k">Walked</span><span class="v accent" id="cDist">0 m</span></div>
           <div><span class="k">Sim. time</span><span class="v" id="cTime">0:00:00</span></div>
-          <div id="cCompareBox"><span class="k">Same orders on Original</span><span class="v" id="cCompare">–</span></div>
+          <div id="cCompareBox"><span class="k" id="cCompareK">Same orders on Original</span><span class="v" id="cCompare">–</span></div>
         </div>
       </div>
 
