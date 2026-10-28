@@ -3,31 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Warehouse Digital Twin</title>
+  <meta name="theme-color" content="#f3eee3" />
+  <title>Picking Floor Twin</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231f2226'/%3E%3Crect x='7' y='7' width='4' height='18' fill='%23e0442a'/%3E%3Crect x='14' y='7' width='4' height='18' fill='%23f3eee3'/%3E%3Crect x='21' y='7' width='4' height='18' fill='%23f3eee3'/%3E%3C/svg%3E" />
 </head>
 <body>
   <div id="app">
     <aside id="panel">
-      <header>
-        <h1>Warehouse Digital Twin</h1>
+      <header class="mast">
+        <div class="mast-top"><span class="stamp">PS 4.2</span><span class="mono">ELECTRO-SOLVE 2026</span></div>
+        <h1>Picking&nbsp;Floor<br /><em>Digital Twin</em></h1>
         <p class="sub" id="subtitle">Loading real orders…</p>
       </header>
 
       <section>
-        <h2>Layout</h2>
+        <h2><i>01</i>Layout</h2>
         <div id="layoutButtons" class="seg"></div>
         <p id="layoutDesc" class="desc"></p>
         <div id="copyRow" class="row hidden">
-          <button id="copyToPlayer" class="ghost">Copy this layout into “You” and edit</button>
+          <button id="copyToPlayer" class="ghost">Copy this layout into “You” and edit →</button>
         </div>
       </section>
 
       <section>
         <div class="h2row">
-          <h2>Month replay scoreboard</h2>
+          <h2><i>02</i>Month replay</h2>
           <div class="seg small" id="modeButtons">
-            <button data-mode="single" class="on">1 order / trip</button>
-            <button data-mode="batch">Batch of 4</button>
+            <button data-mode="single" class="on">1 order</button>
+            <button data-mode="batch">Batch ×4</button>
+            <button data-mode="smart" title="Batch 4 orders whose aisles overlap, from the next 12 waiting">Smart</button>
           </div>
         </div>
         <table id="scoreboard"></table>
@@ -35,15 +39,24 @@
       </section>
 
       <section id="playerSection">
-        <h2>Your layout</h2>
-        <p class="desc">Click a rack, then a second rack, to swap their products. <span class="pink">◆</span> marks the products most often bought with the one you selected.</p>
+        <h2><i>03</i>Your layout</h2>
+        <p class="desc">Click a rack, then a second rack, to swap their products. <span class="plum">◆</span> marks what is most often bought with the selected product.</p>
         <div id="swapInfo" class="swapinfo">No swaps yet.</div>
         <div class="row">
-          <button id="undo" class="ghost">Undo</button>
+          <button id="undo" class="ghost">↶ Undo</button>
           <button id="resetOriginal" class="ghost">Reset to Original</button>
         </div>
+        <div class="optbox">
+          <div class="h2row"><h3>Live optimizer</h3><span id="optStatus" class="mono status">idle</span></div>
+          <p class="desc tight">Simulated annealing on <b>your</b> layout, in a background thread. Every candidate swap is judged by re-routing the real orders it affects.</p>
+          <canvas id="optChart" width="560" height="140"></canvas>
+          <div class="row">
+            <button id="optRun" class="primary">Optimize live</button>
+            <button id="optStop" class="ghost" disabled>Stop</button>
+          </div>
+        </div>
         <div class="row">
-          <input id="playerName" maxlength="18" placeholder="Your name" />
+          <input id="playerName" maxlength="18" placeholder="Your name" aria-label="Your name" />
           <button id="saveScore">Save to leaderboard</button>
         </div>
         <ol id="leaderboard"></ol>
@@ -51,7 +64,7 @@
 
       <section>
         <details>
-          <summary>About the data & model</summary>
+          <summary><i>04</i>About the data &amp; model</summary>
           <div id="about"></div>
         </details>
       </section>
@@ -63,12 +76,12 @@
       <div id="hud">
         <div class="hud-controls">
           <button id="play" class="primary">▶ Replay orders</button>
-          <button id="stepOrder" class="ghost" title="Skip to next order">⏭</button>
+          <button id="stepOrder" class="ghost icon" title="Skip to next order" aria-label="Skip to next order">⏭</button>
           <label class="speed">Speed <input id="speed" type="range" min="0" max="100" value="50" /> <span id="speedVal"></span></label>
         </div>
         <div class="hud-stats">
           <div><span class="k">Orders replayed</span><span class="v" id="cOrders">0</span></div>
-          <div><span class="k">Walked</span><span class="v" id="cDist">0 m</span></div>
+          <div><span class="k">Walked</span><span class="v accent" id="cDist">0 m</span></div>
           <div><span class="k">Sim. time</span><span class="v" id="cTime">0:00:00</span></div>
           <div id="cCompareBox"><span class="k">Same orders on Original</span><span class="v" id="cCompare">–</span></div>
         </div>
@@ -77,13 +90,24 @@
       <div id="orderCard" class="hidden"></div>
 
       <div id="toolbar">
-        <label class="toggle"><input type="checkbox" id="trafficToggle" /> Floor traffic heatmap</label>
+        <label class="toggle"><input type="checkbox" id="trafficToggle" /> Floor traffic <kbd>H</kbd></label>
+        <label class="toggle"><input type="checkbox" id="iotToggle" /> IoT sensors <kbd>I</kbd></label>
         <button id="resetView" class="ghost small">Reset view</button>
         <div id="legend"></div>
       </div>
 
+      <div id="iotPanel" class="hidden">
+        <div class="iot-head">
+          <span class="live">● LIVE</span><b>Sensor event stream</b>
+          <span class="iot-count" id="iotCount">0 events</span>
+          <button id="iotDownload" class="ghost small" title="Download the event log as JSON Lines">⬇ JSONL</button>
+        </div>
+        <div class="iot-legend"><span class="t-rfid">RFID</span><span class="t-uwb">UWB</span><span class="t-ptl">PICK-TO-LIGHT</span><span class="t-scan">SCAN</span></div>
+        <div id="iotFeed"></div>
+      </div>
+
       <div id="tooltip" class="hidden"></div>
-      <div id="toast" class="hidden"></div>
+      <div id="toast" class="hidden" role="status"></div>
     </main>
   </div>
   <script type="module" src="/src/main.js"></script>

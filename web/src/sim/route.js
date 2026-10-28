@@ -58,6 +58,41 @@ export function buildTrips(orders, batchSize = 1) {
   return trips;
 }
 
+// Smart batching: the next unbatched order seeds a trip, then from the next `window` waiting orders
+// (orders that arrived close in time) we add the one whose aisles overlap the trip most (Jaccard).
+// Layout-aware, as a WMS would do it: it knows where each product is shelved.
+export function buildSmartTrips(wh, orders, productAt, batchSize = 4, window = 12) {
+  const slotOf = slotOfProduct(productAt);
+  const aisles = orders.map((o) => new Set(o.items.map(([p]) => wh.slots[slotOf[p]].aisle)));
+  const used = new Uint8Array(orders.length);
+  const trips = [];
+  let head = 0;
+  while (head < orders.length) {
+    if (used[head]) { head++; continue; }
+    const group = [head]; used[head] = 1;
+    const cover = new Set(aisles[head]);
+    while (group.length < batchSize) {
+      let best = -1, bestScore = -1, seen = 0;
+      for (let j = head + 1; j < orders.length && seen < window; j++) {
+        if (used[j]) continue;
+        seen++;
+        let inter = 0;
+        for (const a of aisles[j]) if (cover.has(a)) inter++;
+        const score = inter / (cover.size + aisles[j].size - inter);
+        if (score > bestScore) { bestScore = score; best = j; }
+      }
+      if (best < 0) break;
+      group.push(best); used[best] = 1;
+      for (const a of aisles[best]) cover.add(a);
+    }
+    const products = [];
+    let lines = 0;
+    for (const i of group) for (const [p] of orders[i].items) { products.push(p); lines++; }
+    trips.push({ orders: group.map((i) => orders[i].id), products: [...new Set(products)], lines });
+  }
+  return trips;
+}
+
 export function tripNodes(wh, slotOf, trip) {
   return trip.products.map((p) => wh.slots[slotOf[p]].node);
 }

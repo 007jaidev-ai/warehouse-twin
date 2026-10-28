@@ -1,7 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { buildWarehouse } from './sim/warehouse.js';
-import { buildTrips, edgeTraffic, routeNodes, scoreLayout, slotOfProduct, tripNodes } from './sim/route.js';
+import { buildSmartTrips, buildTrips, edgeTraffic, routeNodes, scoreLayout, slotOfProduct, tripNodes } from './sim/route.js';
 import { coOccurrence, partners } from './sim/layouts.js';
 import { createScene } from './scene/scene.js';
 
@@ -14,7 +14,8 @@ const hms = (s) => {
 const mmss = (s) => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-const RAMP = ['#24396b', '#2c7fb8', '#3db68a', '#f2c14e', '#f0602b'].map((c) => new THREE.Color(c));
+// rare -> very frequent; same stops as build/blender/scene.py so the renders match the app
+const RAMP = ['#d7d3c8', '#a9c3bb', '#4e978a', '#edb23a', '#e0442a'].map((c) => new THREE.Color(c));
 function ramp(v) {
   const x = Math.max(0, Math.min(1, v)) * (RAMP.length - 1);
   const i = Math.min(Math.floor(x), RAMP.length - 2);
@@ -45,17 +46,24 @@ async function main() {
   LAYOUTS[3].d = `Simulated annealing: ${fmt(ref.meta.saIterations)} random slot swaps, each one judged by re-routing every affected order of the month. The best layout found by the machine.`;
 
   const S = {
-    view: 'original', batch: false, traffic: false, sel: -1, history: [],
+    view: 'original', mode: 'single', traffic: false, iot: false, sel: -1, history: [],
     layouts: { ...ref.layouts, player: isPerm(store.get('wt-player')) ? store.get('wt-player') : ref.layouts.original.slice() },
   };
 
   $('subtitle').innerHTML = `Online Retail II (UCI) · ${new Date(stats.month + '-01').toLocaleString('en', { month: 'long', year: 'numeric' })}<br>${fmt(orders.length)} real orders · ${fmt(stats.lines_replayed)} pick lines · top ${products.length} products`;
 
   // ---------- scoring ----------
+  // trips depend on the mode; smart batches also depend on the layout (they group orders by aisle overlap)
+  const SMART_WINDOW = 12;
   const tripCache = {};
-  const trips = (batch = S.batch) => (tripCache[batch] ||= buildTrips(orders, batch ? wh.cfg.batchSize : 1));
+  const trips = (k = S.view, mode = S.mode) => {
+    const key = mode === 'smart' ? `smart|${k}` : mode;
+    return (tripCache[key] ||= mode === 'smart'
+      ? buildSmartTrips(wh, orders, S.layouts[k], wh.cfg.batchSize, SMART_WINDOW)
+      : buildTrips(orders, mode === 'batch' ? wh.cfg.batchSize : 1));
+  };
   let scores = {};
-  const score = (k) => { scores[k] = scoreLayout(wh, S.layouts[k], trips(), orders.length); };
+  const score = (k) => { scores[k] = scoreLayout(wh, S.layouts[k], trips(k), orders.length); };
   const scoreAll = () => { scores = {}; LAYOUTS.forEach(({ k }) => score(k)); };
   let trafficCache = {};
 
@@ -77,10 +85,12 @@ async function main() {
       return `<tr class="${cls}"><td>${n}${badges}<div class="bar"><i style="width:${(s.dist / base) * 100}%"></i></div></td>
         <td>${fmt(s.dist / 1000, 1)}</td><td>${fmt(s.distPerOrder, 1)}</td><td>${mmss(s.secPerOrder)}</td><td>${savedCell}</td></tr>`;
     });
-    $('scoreboard').innerHTML = `<tr><th>Layout</th><th>km / month</th><th>m / order</th><th>time / order</th><th>walk saved</th></tr>${rows.join('')}`;
-    $('scoreNote').textContent = (S.batch
-      ? `Batch picking: ${wh.cfg.batchSize} consecutive orders share one trip (one cart, ${wh.cfg.batchSize} totes). `
-      : 'One trip per order. ')
+    $('scoreboard').innerHTML = `<tr><th>Layout</th><th>km/mo</th><th>m/order</th><th>t/order</th><th>saved</th></tr>${rows.join('')}`;
+    $('scoreNote').textContent = ({
+      single: 'One trip per order. ',
+      batch: `Batch picking: ${wh.cfg.batchSize} consecutive orders share one trip (one cart, ${wh.cfg.batchSize} totes). `,
+      smart: `Smart batching: each trip takes the next order plus the ${wh.cfg.batchSize - 1} orders (from the next ${SMART_WINDOW} waiting) whose aisles overlap it most. `,
+    })[S.mode]
       + `Every layout replays the same ${fmt(orders.length)} orders. Route = shortest path along aisles (nearest neighbour + 2-opt), walk ${wh.cfg.walkSpeed} m/s, ${wh.cfg.pickSecPerLine} s per pick line.`;
   }
 
@@ -93,10 +103,10 @@ async function main() {
   }
   function paintTraffic() {
     if (!S.traffic) { scene.setTraffic(null); return; }
-    const key = `${S.view}|${S.batch}`;
-    trafficCache[key] ||= edgeTraffic(wh, S.layouts[S.view], trips());
-    const origKey = `original|${S.batch}`;
-    trafficCache[origKey] ||= edgeTraffic(wh, S.layouts.original, trips());
+    const key = `${S.view}|${S.mode}`;
+    trafficCache[key] ||= edgeTraffic(wh, S.layouts[S.view], trips(S.view));
+    const origKey = `original|${S.mode}`;
+    trafficCache[origKey] ||= edgeTraffic(wh, S.layouts.original, trips('original'));
     // normalise to the Original layout so colours compare across layouts
     const mx = Math.max(...trafficCache[origKey]);
     scene.setTraffic(trafficCache[key].map((v) => Math.min(v / mx, 1)), ramp);
@@ -121,7 +131,7 @@ async function main() {
   $('layoutButtons').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.k); });
   $('modeButtons').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    S.batch = b.dataset.mode === 'batch';
+    S.mode = b.dataset.mode;
     document.querySelectorAll('#modeButtons button').forEach((x) => x.classList.toggle('on', x === b));
     scoreAll(); applyView();
   });
@@ -163,6 +173,7 @@ async function main() {
   scene.onSlotClick((id) => {
     if (id < 0) { select(-1); return; }
     if (S.view !== 'player') { select(S.sel === id ? -1 : id); return; }
+    if (worker) { toast('The optimizer is rearranging this layout. Stop it to swap by hand.', true); return; }
     if (S.sel < 0) select(id);
     else if (S.sel === id) select(-1);
     else { swap(S.sel, id, true); select(-1); }
@@ -178,7 +189,9 @@ async function main() {
 
   function playerChanged() {
     store.set('wt-player', S.layouts.player);
-    delete trafficCache[`player|true`]; delete trafficCache[`player|false`];
+    for (const m of ['single', 'batch', 'smart']) delete trafficCache[`player|${m}`];
+    delete tripCache['smart|player'];
+    if (S.mode === 'smart') score('player');
     paintRacks(); paintTraffic(); renderScoreboard(); resetReplay();
   }
   function swap(a, b, record) {
@@ -197,12 +210,14 @@ async function main() {
     playerChanged();
   }
   $('undo').addEventListener('click', () => {
+    if (worker) { toast('Stop the optimizer first', true); return; }
     const last = S.history.pop();
     if (!last) { toast('Nothing to undo', true); return; }
     swap(last[0], last[1], false);
     $('swapInfo').textContent = `Undone · ${S.history.length} swaps`;
   });
   function loadIntoPlayer(layout, msg) {
+    if (worker) { $('optStatus').textContent = 'stopped'; stopOptimizer('Optimizer stopped.'); }
     S.layouts.player = layout.slice(); S.history = [];
     score('player');
     $('swapInfo').textContent = msg;
@@ -216,18 +231,23 @@ async function main() {
   });
 
   // ---------- leaderboard (single-order mode distance, so entries are comparable) ----------
-  function renderLeaderboard() {
+  // entries live in localStorage, so treat them as untrusted: drop anything malformed
+  const leaderboard = () => {
     const lb = store.get('wt-leaderboard', []);
+    return Array.isArray(lb) ? lb.filter((e) => e && typeof e.km === 'number' && isFinite(e.km) && typeof e.saved === 'number' && isPerm(e.layout)) : [];
+  };
+  function renderLeaderboard() {
+    const lb = leaderboard();
     $('leaderboard').innerHTML = lb.slice(0, 8).map((e, i) =>
-      `<li data-i="${i}"><b>${esc(e.name)}</b> · ${fmt(e.km, 2)} km · ${e.saved >= 0 ? '−' : '+'}${fmt(Math.abs(e.saved), 1)}% vs Original</li>`).join('')
+      `<li data-i="${i}"><b>${esc(String(e.name).slice(0, 18))}</b> · ${fmt(e.km, 2)} km · ${Math.abs(e.saved) < 0.05 ? '' : e.saved > 0 ? '−' : '+'}${fmt(Math.abs(e.saved), 1)}% vs Original</li>`).join('')
       || '<li style="list-style:none;margin-left:-22px">No saved layouts yet. Be the first!</li>';
   }
   $('saveScore').addEventListener('click', () => {
     const name = $('playerName').value.trim() || 'Anonymous';
-    const t1 = trips(false);
+    const t1 = trips('player', 'single');
     const km = scoreLayout(wh, S.layouts.player, t1, orders.length).dist / 1000;
     const orig = scoreLayout(wh, S.layouts.original, t1, orders.length).dist / 1000;
-    const lb = store.get('wt-leaderboard', []);
+    const lb = leaderboard();
     lb.push({ name, km, saved: (1 - km / orig) * 100, layout: S.layouts.player.slice(), ts: Date.now() });
     lb.sort((a, b) => a.km - b.km);
     store.set('wt-leaderboard', lb.slice(0, 50));
@@ -236,9 +256,84 @@ async function main() {
   });
   $('leaderboard').addEventListener('click', (e) => {
     const li = e.target.closest('li[data-i]'); if (!li) return;
-    const entry = store.get('wt-leaderboard', [])[li.dataset.i];
-    if (entry && isPerm(entry.layout)) loadIntoPlayer(entry.layout, `Loaded ${entry.name}'s layout.`);
+    const entry = leaderboard()[li.dataset.i];
+    if (entry) loadIntoPlayer(entry.layout, `Loaded ${entry.name}'s layout.`);
   });
+
+  // ---------- live optimizer (simulated annealing in a Web Worker) ----------
+  // Objective = one order per trip, the same yardstick as the offline optimizer and the leaderboard.
+  const OPT_ITERS = 24000;
+  let worker = null;
+  const optHist = [];
+  const refKm = {};
+  function drawOptChart() {
+    const c = $('optChart'), g = c.getContext('2d'), W = c.width, H = c.height;
+    g.clearRect(0, 0, W, H);
+    if (!Object.keys(refKm).length) for (const k of ['original', 'abc', 'affinity', 'optimized'])
+      refKm[k] = scoreLayout(wh, S.layouts[k], trips(k, 'single'), orders.length).dist / 1000;
+    const vals = optHist.length ? optHist : [refKm.original];
+    const hi = Math.max(refKm.original, ...vals) + 2, lo = Math.min(refKm.optimized, ...vals) - 2;
+    const y = (v) => 8 + (H - 16) * (hi - v) / (hi - lo);
+    g.font = "500 19px Bahnschrift, 'Segoe UI', sans-serif"; g.lineWidth = 2;
+    for (const [k, col] of [['abc', '#8a8578'], ['affinity', '#2340b8'], ['optimized', '#2e7d4f']]) {
+      g.strokeStyle = col; g.globalAlpha = 0.55; g.setLineDash([8, 6]);
+      g.beginPath(); g.moveTo(0, y(refKm[k])); g.lineTo(W, y(refKm[k])); g.stroke();
+      g.globalAlpha = 0.9; g.fillStyle = col; g.fillText(LAYOUTS.find((l) => l.k === k).n, W - 110, y(refKm[k]) - 5);
+    }
+    g.setLineDash([]); g.globalAlpha = 1;
+    if (optHist.length > 1) {
+      g.strokeStyle = '#e0442a'; g.lineWidth = 4; g.beginPath();
+      optHist.forEach((v, i) => { const x = Math.min(1, i / (OPT_ITERS / 400)) * W; i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); });
+      g.stroke();
+    }
+  }
+  function applyOptLayout(layout) {
+    S.layouts.player = layout.slice(); S.history = [];
+    delete tripCache['smart|player'];
+    score('player');
+    if (S.view === 'player') paintRacks();
+    renderScoreboard();
+  }
+  function stopOptimizer(msg) {
+    if (!worker) return;
+    worker.terminate(); worker = null;
+    $('optRun').disabled = false; $('optStop').disabled = true;
+    $('swapInfo').textContent = msg;
+    playerChanged();
+  }
+  $('optRun').addEventListener('click', () => {
+    if (worker) return;
+    if (S.view !== 'player') setView('player');
+    if (R.playing) togglePlay();
+    optHist.length = 0;
+    worker = new Worker(new URL('./sim/optWorker.js', import.meta.url), { type: 'module' });
+    worker.postMessage({ orders, nProducts: products.length, start: S.layouts.player, iters: OPT_ITERS, seed: (Date.now() & 0xffff) + 1 });
+    $('optRun').disabled = true; $('optStop').disabled = false;
+    $('optStatus').textContent = 'starting…';
+    let shown = Infinity;
+    worker.onerror = (e) => {
+      e.preventDefault?.();
+      $('optStatus').textContent = 'error';
+      toast('Optimizer failed to start in this browser', true);
+      stopOptimizer('Optimizer stopped after an error. Your layout is unchanged.');
+    };
+    worker.onmessage = ({ data }) => {
+      const km = data.best / 1000;
+      if (data.type === 'progress') {
+        optHist.push(km);
+        if (data.best < shown - 1) { shown = data.best; applyOptLayout(data.layout); }
+        $('optStatus').textContent = `${Math.round((data.it / data.iters) * 100)}% · ${fmt(km, 1)} km · ${fmt(data.sec, 1)} s`;
+        drawOptChart();
+      } else {
+        applyOptLayout(data.layout);
+        const saved = (1 - data.best / data.startDist) * 100;
+        $('optStatus').textContent = `done · ${fmt(km, 1)} km in ${fmt(data.sec, 1)} s`;
+        toast(`Optimizer: ${fmt(data.startDist / 1000, 1)} → ${fmt(km, 1)} km per month (−${fmt(saved, 1)}%)`);
+        stopOptimizer(`Optimizer finished: ${fmt(OPT_ITERS)} swaps tried, ${fmt(data.accepted)} accepted, −${fmt(saved, 1)}% walking.`);
+      }
+    };
+  });
+  $('optStop').addEventListener('click', () => { $('optStatus').textContent = 'stopped'; stopOptimizer('Optimizer stopped. Kept the best layout found so far.'); });
 
   // ---------- replay (animated picker) ----------
   const speedOf = (v) => Math.max(1, Math.round(Math.pow(10, (v / 100) * Math.log10(300))));
@@ -247,21 +342,65 @@ async function main() {
   $('speed').addEventListener('input', (e) => { speed = speedOf(+e.target.value); showSpeed(); });
   showSpeed();
 
+  // ---------- IoT sensor mode: the events real devices would stream for this replay ----------
+  // RFID gate at the dock, UWB tag on the cart, pick-to-light module per slot, barcode scanner on the picker.
+  const IOT = { log: [], buf: [], dirty: false };
+  const TAG = { rfid: 'RFID', uwb: 'UWB', ptl: 'PTL', scan: 'SCAN' };
+  function iot(type, dev, msg, data = {}) {
+    if (!S.iot) return;
+    const ev = { t_sim_s: +R.sim.toFixed(1), type, device: dev, ...data };
+    IOT.log.push(ev);
+    if (IOT.log.length > 50000) IOT.log.splice(0, 10000);
+    IOT.buf.push(`<div><span class="ts">${hms(R.sim)}</span><span class="t-${type}">${TAG[type].padEnd(4, ' ')}</span> ${esc(dev)} · ${esc(msg)}</div>`);
+    if (IOT.buf.length > 14) IOT.buf.splice(0, IOT.buf.length - 14);
+    IOT.dirty = true;
+  }
+  function flushIot() {
+    if (!IOT.dirty) return;
+    IOT.dirty = false;
+    $('iotFeed').innerHTML = IOT.buf.slice().reverse().join('');
+    $('iotCount').textContent = `${fmt(IOT.log.length)} events`;
+  }
+  const zoneOf = (x, z) => {
+    if (z < wh.frontZ + wh.cfg.crossW / 2) return z < wh.frontZ - wh.cfg.crossW / 2 ? 'dock' : 'front cross-aisle';
+    if (z > wh.backZ - wh.cfg.crossW / 2) return 'back cross-aisle';
+    const a = Math.round((x - wh.aisleX(0)) / (wh.aisleX(1) - wh.aisleX(0)));
+    return `aisle ${wh.cfg.aisles - a}`;
+  };
+  function showPending(ids) {
+    scene.setPending(ids);
+    scene.setLights(S.iot ? ids : []);
+  }
+  $('iotToggle').addEventListener('change', (e) => {
+    S.iot = e.target.checked;
+    $('iotPanel').classList.toggle('hidden', !S.iot);
+    $('stage').classList.toggle('iot', S.iot);
+    scene.setUwb(S.iot);
+    if (R) scene.setLights(S.iot && R.P ? R.P.pending : []);
+  });
+  $('iotDownload').addEventListener('click', () => {
+    const blob = new Blob([IOT.log.map((e) => JSON.stringify(e)).join('\n')], { type: 'application/x-ndjson' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `warehouse-twin-events-${S.view}.jsonl` });
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+
   let R;
   function resetReplay() {
-    R = { playing: false, i: 0, done: 0, walked: 0, sim: 0, doneDist: 0, origDist: 0, P: null };
+    // the trip list and the layout are snapshotted, so the live optimizer can't desync a replay in progress
+    R = { playing: false, i: 0, done: 0, walked: 0, sim: 0, doneDist: 0, origDist: 0, P: null, trips: trips(), layout: curLayout().slice() };
     const d = wh.pos[wh.DOCK];
     scene.setPicker(d[0], d[1], Math.PI, false);
-    scene.setRoute([]); scene.setPending([]);
+    scene.setRoute([]); showPending([]);
+    IOT.log = []; IOT.buf = []; IOT.dirty = true;
     $('orderCard').classList.add('hidden');
     $('play').textContent = '▶ Replay orders';
     renderCounters();
   }
 
   function startTrip() {
-    const t = trips()[R.i];
+    const t = R.trips[R.i];
     if (!t) { R.playing = false; R.P = null; $('play').textContent = '✓ Month replayed'; return; }
-    const layout = curLayout(), slotOf = slotOfProduct(layout);
+    const slotOf = slotOfProduct(R.layout);
     const { tour, dist } = routeNodes(wh, tripNodes(wh, slotOf, t));
     const tripOrders = t.orders.map((id) => orderById.get(id));
     const lines = new Map(), qty = new Map();
@@ -280,11 +419,17 @@ async function main() {
     }
     let origDist = dist;
     if (S.view !== 'original') origDist = routeNodes(wh, tripNodes(wh, slotOfProduct(S.layouts.original), t)).dist;
-    R.P = { t, pts, stops, seg: 0, segT: 0, dwell: 0, dist, origDist, slotsAtNode, lines, slotOf, picked: new Set(),
+    R.P = { t, pts, stops, seg: 0, segT: 0, dwell: 0, dist, origDist, slotsAtNode, lines, qty, slotOf, picked: new Set(),
             walkStart: R.walked, simStart: R.sim, pending: t.products.map((p) => slotOf[p]) };
     scene.setRoute(pts);
-    scene.setPending(R.P.pending);
+    showPending(R.P.pending);
     renderOrderCard(tripOrders, qty);
+    iot('rfid', 'DOCK-GATE', `cart C-01 out · ${t.orders.length} tote${t.orders.length > 1 ? 's' : ''} → ${t.orders.join(', ')}`,
+      { event: 'cart_out', cart: 'C-01', orders: t.orders });
+    for (const p of t.products) {
+      const s = wh.slots[slotOf[p]];
+      iot('ptl', `PTL-${s.label}`, `ON · ${products[p].code} qty ${qty.get(p)}`, { event: 'light_on', slot: s.label, sku: products[p].code, qty: qty.get(p) });
+    }
   }
 
   function renderOrderCard(tripOrders, qty) {
@@ -301,21 +446,25 @@ async function main() {
     const P = R.P;
     let n = 0;
     for (const s of P.slotsAtNode.get(node) || []) {
-      const p = curLayout()[s];
+      const p = R.layout[s];
       if (P.picked.has(p)) continue;
       P.picked.add(p);
       n += P.lines.get(p);
       scene.flashSlot(s);
       const li = $('orderCard').querySelector(`li[data-p="${p}"]`);
       if (li) { li.classList.add('done'); li.querySelector('.ck').textContent = '✓'; }
+      const lbl = wh.slots[s].label;
+      iot('scan', 'SCANNER-01', `${products[p].code} @${lbl} qty ${P.qty.get(p)} ✓`, { event: 'pick_confirmed', slot: lbl, sku: products[p].code, qty: P.qty.get(p) });
+      iot('ptl', `PTL-${lbl}`, 'OFF', { event: 'light_off', slot: lbl });
     }
-    P.pending = P.pending.filter((s) => !P.picked.has(curLayout()[s]));
-    scene.setPending(P.pending);
+    P.pending = P.pending.filter((s) => !P.picked.has(R.layout[s]));
+    showPending(P.pending);
     P.dwell = n * wh.cfg.pickSecPerLine;
   }
 
   function finishTrip() {
     const P = R.P;
+    iot('rfid', 'DOCK-GATE', `cart C-01 in · ${fmt(P.dist)} m · ${P.t.lines} lines`, { event: 'cart_in', cart: 'C-01', trip_m: +P.dist.toFixed(1), lines: P.t.lines });
     R.done += P.t.orders.length;
     R.doneDist += P.dist;
     R.origDist += P.origDist;
@@ -341,6 +490,10 @@ async function main() {
       else {
         R.walked += remain; R.sim += remain / ws; sim -= remain / ws;
         P.seg++; P.segT = 0;
+        if (S.iot) {
+          const [x, z] = P.pts[P.seg];
+          iot('uwb', 'UWB-TAG C-01', `x ${x.toFixed(1)} z ${z.toFixed(1)} m · ${zoneOf(x, z)}`, { event: 'position', cart: 'C-01', x: +x.toFixed(2), z: +z.toFixed(2) });
+        }
         if (P.stops.has(P.seg)) arrive(P.stops.get(P.seg));
       }
     }
@@ -370,7 +523,7 @@ async function main() {
 
   $('play').addEventListener('click', togglePlay);
   function togglePlay() {
-    if (!R.P && R.i >= trips().length) resetReplay();
+    if (!R.P && R.i >= R.trips.length) resetReplay();
     R.playing = !R.playing;
     if (R.playing && !R.P) startTrip();
     $('play').textContent = R.playing ? '❚❚ Pause' : '▶ Resume';
@@ -384,7 +537,8 @@ async function main() {
   scene.onFrame((dt) => {
     step(dt);
     hudTimer += dt;
-    if (hudTimer > 0.1) { hudTimer = 0; renderCounters(); }
+    if (hudTimer > 0.1) { hudTimer = 0; renderCounters(); flushIot(); }
+    return R.playing;
   });
 
   // ---------- keyboard shortcuts (handy during the demo) ----------
@@ -393,7 +547,9 @@ async function main() {
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
     else if (e.key >= '1' && e.key <= '5') setView(LAYOUTS[+e.key - 1].k);
     else if (e.key === 'h') { $('trafficToggle').click(); }
-    else if (e.key === 'b') { document.querySelector(`#modeButtons button[data-mode=${S.batch ? 'single' : 'batch'}]`).click(); }
+    else if (e.key === 'b') { const next = { single: 'batch', batch: 'smart', smart: 'single' }[S.mode]; document.querySelector(`#modeButtons button[data-mode=${next}]`).click(); }
+    else if (e.key === 'i') { $('iotToggle').click(); }
+    else if (e.key === 'o') { $('optRun').click(); }
     else if (e.key === 'Escape') select(-1);
   });
 
@@ -420,23 +576,27 @@ async function main() {
       The gains carry over to future orders.</p>
     <p><b>Affinity</b> weight w = ${ref.meta.affinityW} (picked by replay). <b>Optimizer</b>: ${fmt(ref.meta.saIterations)} iterations,
       ${fmt(ref.meta.saAccepted)} swaps accepted, ${fmt(ref.meta.saSeconds, 0)} s offline.</p>
-    <p class="note">Shortcuts: Space play/pause · 1–5 layouts · H traffic heatmap · B batch mode · Esc deselect</p>`;
+    <p class="note">Shortcuts: <kbd>Space</kbd> play/pause · <kbd>1</kbd>–<kbd>5</kbd> layouts · <kbd>H</kbd> traffic · <kbd>B</kbd> batch mode · <kbd>I</kbd> IoT · <kbd>O</kbd> optimizer · <kbd>Esc</kbd> deselect</p>`;
 
   // URL presets for the demo screen, e.g. ?view=affinity&batch=1&traffic=1&play=1&speed=80
   const q = new URLSearchParams(location.search);
   if (LAYOUTS.some((l) => l.k === q.get('view'))) S.view = q.get('view');
-  if (q.get('batch') === '1') {
-    S.batch = true;
-    document.querySelectorAll('#modeButtons button').forEach((x) => x.classList.toggle('on', x.dataset.mode === 'batch'));
+  const qMode = q.get('batch') === '1' ? 'batch' : q.get('batch') === 'smart' ? 'smart' : null;
+  if (qMode) {
+    S.mode = qMode;
+    document.querySelectorAll('#modeButtons button').forEach((x) => x.classList.toggle('on', x.dataset.mode === qMode));
   }
+  if (q.get('iot') === '1') $('iotToggle').click();
   if (q.get('traffic') === '1') { S.traffic = true; $('trafficToggle').checked = true; }
-  if (q.has('speed')) { $('speed').value = q.get('speed'); speed = speedOf(+q.get('speed')); showSpeed(); }
+  if (q.has('speed') && isFinite(+q.get('speed'))) { $('speed').value = Math.max(0, Math.min(100, +q.get('speed'))); speed = speedOf(+$('speed').value); showSpeed(); }
 
   scoreAll();
   renderLeaderboard();
   applyView();
+  drawOptChart();
   if (q.get('play') === '1') togglePlay();
-  if (q.has('select')) select(+q.get('select'));
+  if (q.get('opt') === '1') $('optRun').click();
+  if (q.has('select') && Number.isInteger(+q.get('select')) && +q.get('select') >= 0 && +q.get('select') < wh.nSlots) select(+q.get('select'));
 }
 
 main();
