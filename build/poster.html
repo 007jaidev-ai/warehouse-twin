@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Picking Floor Digital Twin - A3 Poster</title>
+<!-- Print: msedge --headless --print-to-pdf --no-pdf-header-footer (see README). Images: build/prep_assets.py -->
+<style>
+  @page { size: 297mm 420mm; margin: 0; }
+  :root {
+    --paper: #f1eadb; --sheet: #faf7f0; --ink: #1f2226; --ink2: #4a4d52; --muted: #7d786c; --rule: #d3cab8;
+    --signal: #e0442a; --cobalt: #2340b8; --moss: #2e7d4f; --plum: #a8307e;
+    --f: Bahnschrift, 'DIN Alternate', Barlow, sans-serif; --cond: 'Bahnschrift SemiCondensed', Bahnschrift, sans-serif;
+    --mono: 'Cascadia Mono', Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 297mm; height: 420mm; background: var(--paper); }
+  body { font-family: var(--f); color: var(--ink); font-size: 10.5pt; line-height: 1.38; overflow: hidden;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { height: 420mm; padding: 9mm 13mm 6mm; display: flex; flex-direction: column; gap: 3.4mm; }
+  .page > * { flex-shrink: 0; }
+  .mono { font-family: var(--mono); font-size: 7.5pt; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+  .run { display: flex; justify-content: space-between; border-bottom: 1.2px solid var(--ink); padding-bottom: 2mm; }
+  .run b { color: var(--signal); font-weight: 400; }
+
+  /* masthead + hero */
+  .top { display: grid; grid-template-columns: 112mm 1fr; gap: 6mm; align-items: start; }
+  .stamp { display: inline-block; border: 1.6px solid var(--signal); color: var(--signal); font-family: var(--cond); font-weight: 700;
+           letter-spacing: .14em; font-size: 10pt; padding: .6mm 2.2mm .3mm; transform: rotate(-3deg); margin: 3mm 0 3mm; }
+  h1 { font-size: 50pt; line-height: .9; font-weight: 600; letter-spacing: -.015em; }
+  h1 em { font-style: normal; font-weight: 300; color: var(--signal); display: block; }
+  .lede { font-size: 11.5pt; color: var(--ink2); margin-top: 4mm; line-height: 1.38; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 5mm; }
+  .kpis div { border-top: 1.2px solid var(--ink); padding-top: 1.5mm; }
+  .kpis b { display: block; font-weight: 300; font-size: 22pt; line-height: 1; color: var(--signal); }
+  .kpis b.i { color: var(--ink); }
+  .kpis span { font-size: 8.3pt; color: var(--ink2); line-height: 1.2; display: block; margin-top: 1mm; }
+  .team { border-top: 1px solid var(--rule); margin-top: 5mm; padding-top: 2mm; font-size: 9.5pt; color: var(--ink2); }
+  .team b { display: block; font-weight: 600; color: var(--ink); }
+  .team .ph { color: var(--muted); }
+  .topr { position: relative; margin-right: -13mm; }
+  .topr img { width: 100%; display: block; margin-top: -2mm; }
+  .legend { position: absolute; left: 0; bottom: 1mm; width: 50mm; display: flex; flex-wrap: wrap; justify-content: space-between; }
+  .ramp { width: 100%; height: 2.2mm; margin: 1mm 0 .6mm; background: linear-gradient(90deg, #d7d3c8, #a9c3bb, #4e978a, #edb23a, #e0442a); }
+
+  /* sections */
+  h2 { font-family: var(--cond); font-size: 10pt; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; color: var(--signal);
+       border-top: 1.2px solid var(--ink); padding-top: 2mm; margin-bottom: 2.5mm; display: flex; gap: 3mm; align-items: baseline; }
+  h2 i { font-style: normal; font-family: var(--mono); color: var(--muted); letter-spacing: 0; font-weight: 400; font-size: 8pt; }
+  h3 { font-size: 15pt; font-weight: 600; line-height: 1.1; margin-bottom: 2mm; }
+  p { color: var(--ink2); }
+  p b { color: var(--ink); font-weight: 600; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8mm; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
+  .big { font-size: 38pt; font-weight: 300; line-height: .95; color: var(--signal); }
+  .split { display: flex; height: 6mm; margin: 3mm 0 1mm; font-size: 8.5pt; font-weight: 600; }
+  .split span { display: flex; align-items: center; padding-left: 2mm; }
+  .split .w { background: var(--ink); color: var(--paper); width: 52.7%; }
+  .split .p { border: 1px solid var(--ink); flex: 1; }
+
+  .fun { display: grid; grid-template-columns: 30mm 1fr 15mm; align-items: center; font-size: 9pt; }
+  .fun > * { border-bottom: 1px solid var(--rule); padding: 1.6mm 0; }
+  .fun .bar { height: 3.4mm; background: var(--ink); padding: 0; border: none; }
+  .fun .bw { border-bottom: 1px solid var(--rule); padding: 2.7mm 0; }
+  .fun .v { text-align: right; font-family: var(--mono); font-size: 8.5pt; }
+  .fun .hot { color: var(--signal); font-weight: 600; }
+
+  .steps { display: grid; gap: 0; }
+  .steps div { display: grid; grid-template-columns: 10mm 1fr; border-bottom: 1px solid var(--rule); padding: 1.4mm 0; font-size: 9pt; line-height: 1.3; }
+  .steps i { font-style: normal; font-weight: 300; font-size: 15pt; color: var(--signal); line-height: 1; }
+  .steps b { font-weight: 600; display: block; font-size: 10pt; }
+  .steps span { color: var(--ink2); }
+
+  /* ladder of plans */
+  .ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6mm; }
+  .plan img { height: 47mm; width: auto; display: block; margin: 0 auto; }
+  .plan .cap { border-top: 1.2px solid var(--ink); margin-top: 2mm; padding-top: 1.5mm; display: flex; justify-content: space-between; align-items: baseline; }
+  .plan .cap b { font-size: 12pt; font-weight: 600; }
+  .plan .cap .pct { font-family: var(--mono); font-size: 10pt; }
+  .plan.on .pct { color: var(--signal); font-weight: 700; }
+  .plan .t { font-family: var(--cond); font-size: 8pt; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .plan p { font-size: 8.6pt; line-height: 1.3; margin-top: .8mm; }
+
+  .routes { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .routes img { width: 100%; height: 33mm; object-fit: cover; object-position: 50% 45%; display: block; }
+  .routes .m { border-top: 1.2px solid var(--ink); display: flex; justify-content: space-between; align-items: baseline; padding-top: 1mm; }
+  .routes .m b { font-weight: 300; font-size: 19pt; }
+  .routes .m.on b { color: var(--signal); }
+  .routes .m span { font-family: var(--cond); font-weight: 700; letter-spacing: .14em; font-size: 8pt; color: var(--muted); }
+
+  .bars { display: grid; grid-template-columns: 19mm 1fr; row-gap: 1.2mm; align-items: center; font-size: 9pt; }
+  .bars .b { display: flex; align-items: center; gap: 1.5mm; font-family: var(--mono); font-size: 8pt; }
+  .bars .b i { display: block; height: 2.6mm; }
+  .key2 { display: flex; gap: 4mm; font-size: 8pt; color: var(--ink2); margin-bottom: 2mm; }
+  .key2 i { display: inline-block; width: 2.4mm; height: 2.4mm; margin-right: 1.2mm; vertical-align: -.2mm; }
+
+  .shot { border: 1px solid var(--ink); box-shadow: 1.6mm 1.6mm 0 var(--ink); width: 100%; height: 55mm; object-fit: cover; object-position: 62% 40%; display: block; }
+  .find { background: var(--ink); color: var(--paper); padding: 3mm 4.5mm; }
+  .find h2 { color: #f3b8a9; border-top: none; padding-top: 0; }
+  .find p { color: #e6dfcf; font-size: 10pt; line-height: 1.38; }
+  .find p b { color: #fff; }
+  ul.feat { list-style: none; }
+  ul.feat li { border-bottom: 1px solid var(--rule); padding: 1.3mm 0; font-size: 9pt; color: var(--ink2); display: grid; grid-template-columns: 7mm 1fr; }
+  ul.feat li i { font-style: normal; font-family: var(--mono); color: var(--signal); font-size: 8pt; }
+  ul.feat li b { color: var(--ink); font-weight: 600; }
+  .ev { font-family: var(--mono); font-size: 7.8pt; color: var(--ink); }
+  footer { margin-top: auto; border-top: 1px solid var(--rule); padding-top: 2mm; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="run mono"><span>Picking floor digital twin &nbsp;·&nbsp; problem statement 4.2</span><span><b>ELECTRO-SOLVE 2026</b> &nbsp;·&nbsp; project expo</span></div>
+
+  <div class="top">
+    <div class="topl">
+      <span class="stamp">PS 4.2</span>
+      <h1>Picking Floor<em>Digital Twin</em></h1>
+      <p class="lede">A 3D twin of a warehouse picking floor, driven by <b>2,293 real customer orders</b>. Re-shelve the products; it replays the same month and <b>measures</b> the walking saved.</p>
+      <div class="kpis">
+        <div><b class="i">2,293</b><span>real orders, 16,225 pick lines</span></div>
+        <div><b>−15.8%</b><span>walking, optimized layout</span></div>
+        <div><b>−68%</b><span>plus smart batching</span></div>
+      </div>
+      <div class="team"><b>Team GitHappens · SENSE, VIT</b>Rohith Krishna A K (25BCE2027) · Jaidev A (25BCE0971)<br>Guide: Dr. Jaffino</div>
+    </div>
+    <div class="topr">
+      <img src="img/axo_optimized.jpg" alt="Axonometric Blender render of the optimized picking floor">
+      <div class="legend mono">Rack colour = visits / month<div class="ramp"></div><span>rare</span><span>very frequent</span></div>
+    </div>
+  </div>
+
+  <section class="g3">
+    <div>
+      <h2><i>§01</i>The problem</h2>
+      <h3>Pickers walk more than they pick.</h3>
+      <div class="big">53%</div>
+      <div class="split"><span class="w">79 s walking</span><span class="p">71 s picking</span></div>
+      <p class="mono" style="text-transform:none">per order · 1.2 m/s · 10 s per line</p>
+      <p style="margin-top:1mm"><b>218 km</b> a month for one picker in a 100-slot zone.</p>
+    </div>
+    <div>
+      <h2><i>§02</i>Real data</h2>
+      <p style="margin-bottom:2mm"><b>Online Retail II</b> (UCI, CC BY 4.0): UK gift wholesaler, November 2010, pre-Christmas peak.</p>
+      <div class="fun">
+        <span>Raw order lines</span><span class="bw"><span class="bar" style="display:block;width:100%"></span></span><span class="v">76,584</span>
+        <span>Clean pick lines</span><span class="bw"><span class="bar" style="display:block;width:97.6%"></span></span><span class="v">74,757</span>
+        <span>Top 100 products</span><span class="bw"><span class="bar" style="display:block;width:21.2%;background:var(--ink2)"></span></span><span class="v">16,225</span>
+        <span class="hot">Orders replayed</span><span class="bw"><span class="bar" style="display:block;width:3%;background:var(--signal)"></span></span><span class="v hot">2,293</span>
+      </div>
+      <p style="margin-top:1.5mm;font-size:9pt">Top 100 = 3% of the range, 22% of picks. 7.1 lines/order.</p>
+    </div>
+    <div>
+      <h2><i>§03</i>How it works</h2>
+      <div class="steps">
+        <div><i>01</i><span><b>Clean</b>pandas removes cancellations, fees and bad rows</span></div>
+        <div><i>02</i><span><b>Floor graph</b>61 nodes, 64 edges; no edge crosses a rack</span></div>
+        <div><i>03</i><span><b>Route &amp; score</b>nearest neighbour + 2-opt; a month in ms</span></div>
+        <div><i>04</i><span><b>Optimize &amp; play</b>same code in Node and the browser</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><i>§04</i>The layout ladder: same 2,293 orders, four ways to shelve</h2>
+    <div class="ladder">
+      <div class="plan"><img src="img/plan_original.png" alt=""><div class="cap"><b>Original</b><span class="pct">218.1 km</span></div><div class="t">As received</div><p>Stock-code order: the baseline.</p></div>
+      <div class="plan"><img src="img/plan_abc.png" alt=""><div class="cap"><b>ABC</b><span class="pct">−2.5%</span></div><div class="t">Intuition</div><p>Most-picked nearest the dock. Orders still enter most aisles.</p></div>
+      <div class="plan"><img src="img/plan_affinity.png" alt=""><div class="cap"><b>Affinity</b><span class="pct">−11.3%</span></div><div class="t">Data insight</div><p>Products bought together share an aisle.</p></div>
+      <div class="plan on"><img src="img/plan_optimized.png" alt=""><div class="cap"><b>Optimized</b><span class="pct">−15.8%</span></div><div class="t">Algorithm</div><p>Simulated annealing: 80,000 swaps, each judged by exact replay.</p></div>
+    </div>
+  </section>
+
+  <section class="g2">
+    <div>
+      <h2><i>§05</i>Same order, two floors</h2>
+      <div class="routes">
+        <div><img src="img/route_original.jpg" alt=""><div class="m"><span>ORIGINAL · 5 AISLES</span><b>143 m</b></div></div>
+        <div><img src="img/route_optimized.jpg" alt=""><div class="m on"><span>OPTIMIZED · 2 AISLES</span><b>62 m</b></div></div>
+      </div>
+      <p style="font-size:8.5pt;margin-top:1.5mm">Invoice 532964, 9 lines: one of the month’s biggest wins. On average 95.1 → 80.1 m per order.</p>
+    </div>
+    <div>
+      <h2><i>§06</i>Proof: unseen orders &amp; batching</h2>
+      <div class="key2"><span><i style="background:var(--ink)"></i>full month</span><span><i style="background:var(--cobalt)"></i>unseen final week (766 orders)</span></div>
+      <div class="bars">
+        <span>ABC</span><span><span class="b"><i style="width:7.9%;background:var(--ink)"></i>2.5%</span><span class="b" style="color:var(--cobalt)"><i style="width:6%;background:var(--cobalt)"></i>1.9%</span></span>
+        <span>Affinity</span><span><span class="b"><i style="width:35.8%;background:var(--ink)"></i>11.3%</span><span class="b" style="color:var(--cobalt)"><i style="width:35.4%;background:var(--cobalt)"></i>11.2%</span></span>
+        <span><b>Optimized</b></span><span><span class="b"><i style="width:50%;background:var(--ink)"></i>15.8%</span><span class="b" style="color:var(--cobalt)"><i style="width:44%;background:var(--cobalt)"></i>13.9%</span></span>
+      </div>
+      <div class="bars" style="margin-top:3mm;border-top:1px solid var(--rule);padding-top:2mm;grid-template-columns:36mm 1fr">
+        <span>Original, 1 order / trip</span><span class="b"><i style="width:62%;background:var(--ink2)"></i>218.1 km</span>
+        <span>Batch of 4 orders</span><span class="b"><i style="width:25%;background:var(--ink)"></i>88.2 km</span>
+        <span><b>Smart batch + optimized</b></span><span class="b" style="color:var(--signal)"><i style="width:20%;background:var(--signal)"></i>70.1 km · −68%</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="g2" style="grid-template-columns: 1.25fr 1fr">
+    <div>
+      <h2><i>§07</i>Play it: can you beat the optimizer?</h2>
+      <img class="shot" src="img/app_game.jpg" alt="Screenshot of the app">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4mm">
+      <div class="find">
+        <h2><i style="color:#a9a395">§08</i>Key finding</h2>
+        <p>The textbook ABC fix saves only <b>2.5%</b>: orders average 7 lines, so pickers still visit most aisles. Using <b>what is bought together</b> saves 4–5× more, and it holds on orders the model never saw.</p>
+      </div>
+      <ul class="feat">
+        <li><i>01</i><span><b>Swap racks</b> · the whole month re-scores instantly</span></li>
+        <li><i>02</i><span><b>Live optimizer</b> · annealing in a Web Worker; 182.3 km in 14 s</span></li>
+        <li><i>03</i><span><b>IoT sensor mode</b> · RFID gate, UWB cart tag, pick-to-light, barcode scans, as JSON Lines</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="mono"><span>Python · pandas · Node · Three.js · Vite · Blender (Cycles bake + renders) · runs fully offline</span><span>Data: Online Retail II, UCI, CC BY 4.0</span></footer>
+</div>
+</body>
+</html>

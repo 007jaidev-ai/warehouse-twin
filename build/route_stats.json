@@ -1,0 +1,12 @@
+{
+ "order": "532964",
+ "lines": 9,
+ "original": {
+  "m": 143,
+  "aisles": 5
+ },
+ "optimized": {
+  "m": 62,
+  "aisles": 2
+ }
+}
