@@ -431,10 +431,46 @@ async function main() {
   $('iotToggle').addEventListener('change', (e) => {
     S.iot = e.target.checked;
     $('iotPanel').classList.toggle('hidden', !S.iot);
+    if (S.iot) placeIotPanel(store.get('wt-iot-pos'));
     $('stage').classList.toggle('iot', S.iot);
     scene.setUwb(S.iot);
     if (R) scene.setLights(S.iot && R.P ? R.P.pending : []);
   });
+  // the IoT panel can be dragged by its header; it stays inside the 3D view and remembers where it was left
+  function placeIotPanel(pos) {
+    const el = $('iotPanel'), st = $('stage');
+    if (!pos || !isFinite(pos.x) || !isFinite(pos.y)) { el.style.left = el.style.top = ''; el.classList.remove('moved'); return; }
+    const x = Math.max(0, Math.min(pos.x, st.clientWidth - el.offsetWidth));
+    const y = Math.max(0, Math.min(pos.y, st.clientHeight - el.offsetHeight));
+    el.style.left = `${x}px`; el.style.top = `${y}px`; el.classList.add('moved');
+    return { x, y };
+  }
+  {
+    const head = document.querySelector('#iotPanel .iot-head');
+    let drag = null;
+    head.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('button')) return;
+      const el = $('iotPanel'), r = el.getBoundingClientRect(), s = $('stage').getBoundingClientRect();
+      drag = { dx: e.clientX - r.left + s.left, dy: e.clientY - r.top + s.top, pos: null };
+      head.setPointerCapture(e.pointerId); el.classList.add('dragging');
+      e.preventDefault();
+    });
+    head.addEventListener('pointermove', (e) => {
+      if (drag) drag.pos = placeIotPanel({ x: e.clientX - drag.dx, y: e.clientY - drag.dy });
+    });
+    const end = () => {
+      if (!drag) return;
+      if (drag.pos) store.set('wt-iot-pos', drag.pos);
+      drag = null; $('iotPanel').classList.remove('dragging');
+    };
+    head.addEventListener('pointerup', end);
+    head.addEventListener('pointercancel', end);
+    head.addEventListener('dblclick', (e) => {
+      if (e.target.closest('button')) return;
+      store.set('wt-iot-pos', null); placeIotPanel(null);
+    });
+    window.addEventListener('resize', () => { if (S.iot && $('iotPanel').classList.contains('moved')) placeIotPanel(store.get('wt-iot-pos')); });
+  }
   $('iotDownload').addEventListener('click', () => {
     const blob = new Blob([IOT.log.map((e) => JSON.stringify(e)).join('\n')], { type: 'application/x-ndjson' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `warehouse-twin-events-${S.view}.jsonl` });

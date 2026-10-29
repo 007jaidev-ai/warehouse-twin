@@ -210,7 +210,11 @@ button.icon { padding: 7px 10px; }
   position: absolute; right: 18px; bottom: 104px; width: 410px; z-index: 3;
   background: rgba(255, 253, 248, 0.97); border: 1px solid var(--ink); box-shadow: var(--lift); padding: 10px 12px;
 }
-.iot-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+#iotPanel.moved { right: auto; bottom: auto; }
+#iotPanel.dragging { box-shadow: 0 14px 34px rgba(31, 34, 38, 0.22); }
+.iot-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: grab; user-select: none; touch-action: none; }
+#iotPanel.dragging .iot-head { cursor: grabbing; }
+.iot-head button { cursor: pointer; }
 .iot-head .live { color: var(--signal); font-family: var(--f-mono); font-size: 10.5px; font-weight: 700; animation: blink 1.2s infinite; }
 .iot-count { margin-left: auto; color: var(--muted); font-family: var(--f-mono); font-size: 10.5px; }
 @keyframes blink { 50% { opacity: 0.3; } }
