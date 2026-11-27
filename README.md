@@ -1,4 +1,4 @@
-# Picking Floor Digital Twin: 3D Warehouse Slotting Game (PS 4.2)
+# Picking Floor Digital Twin: 3D Warehouse Slotting Game 
 
 A browser-based 3D digital twin of a picking floor, driven by **real orders** from the
 Online Retail II dataset (UCI, CC BY 4.0). The player re-slots products and the twin
