@@ -20,6 +20,7 @@ IMG = HERE / "img"
 import sys
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parent / "ElectroSolve_2026_Warehouse_Digital_Twin.pptx"
 ROUTE = json.loads((HERE / "route_stats.json").read_text())
+CONG = json.loads((HERE.parent / "web" / "public" / "data" / "congestion.json").read_text())
 
 # ---------- design tokens (same as web/src/style.css) ----------
 PAPER, SHEET = "F1EADB", "FAF7F0"
@@ -28,7 +29,7 @@ SIGNAL, COBALT, MOSS, PLUM, SAFETY = "E0442A", "2340B8", "2E7D4F", "A8307E", "E9
 F, F_LIGHT, F_SEMI, F_COND, MONO = "Bahnschrift", "Bahnschrift Light", "Bahnschrift SemiBold", "Bahnschrift SemiCondensed", "Cascadia Mono"
 W, H = 13.333, 7.5
 M = 0.6          # page margin
-N_SLIDES = 11
+N_SLIDES = 12
 
 prs = Presentation()
 prs.slide_width, prs.slide_height = Inches(W), Inches(H)
@@ -203,12 +204,16 @@ NOTES = [
     "Is it memorising the month? No. We built the layouts only from orders before 22 November and tested on the final week, 766 orders "
     "they never saw: ABC 1.9%, Affinity 11.2%, Optimized 13.9%. And slotting stacks with process: batching 4 orders per trip cuts the "
     "month to 88 km; layout-aware smart batching plus the optimized layout gets to 70 km, 68% less than where we started.",
+    "Real floors have more than one picker. We simulate a team of 1 to 6 pickers clearing the month's backlog. In a narrow aisle "
+    "only one cart fits, so the next picker waits at the entrance. With 4 pickers the team loses about 23% of its capacity to queueing; "
+    "with 6, about 35%. Wide aisles almost remove it. And the optimized layout's lead shrinks from 9% to 5%, because concentrating "
+    "picks also concentrates people. Aisle width and batching matter as much as slotting once you have a team.",
     "Demo. Click one rack, then another, to swap; the whole month re-scores instantly. Diamonds show products bought together. "
     "The live optimizer runs the same annealing in a background thread on your layout; in this screenshot it beat the offline optimizer, "
     "182.3 km. Space to replay, 1 to 5 layouts, H heatmap, B batching, I IoT mode, O optimizer.",
     "ECE angle: a digital twin needs sensors. The replay already emits the events real devices would stream: an RFID gate at the dock, "
     "a UWB tag on the cart, pick-to-light modules on every slot, and barcode confirmations. It downloads as JSON Lines, so real hardware "
-    "can replace the replay. Next: several pickers and aisle congestion. Thank you, questions welcome.",
+    "can replace the replay. Next: live sensor input and dynamic re-slotting. Thank you, questions welcome.",
 ]
 
 # =========================== slides ===========================
@@ -371,13 +376,76 @@ text(s, rx, 5.25, 3, 1.0, "−68%", size=54, font=F_LIGHT, color=SIGNAL)
 text(s, rx + 2.25, 5.42, 3.3, 0.9, "walking: the best layout plus layout-aware smart batching, on the same orders.",
      size=11.5, color=INK2, ls=1.1)
 
-# 10 — play it
-s = page(9, "PLAY IT", NOTES[9])
+# 10 — team of pickers
+s = page(9, "A TEAM OF PICKERS", NOTES[9])
+title(s, "More pickers,\nmore queueing", w=5.0, size=36)
+body(s, "Up to six pickers clear the month's backlog together. A narrow aisle fits one cart, so the next picker waits at the entrance.",
+     y=2.75, w=4.6, size=13.5)
+o1, o2, orig1 = CONG["caps"]["1"]["optimized"], CONG["caps"]["2"]["optimized"], CONG["caps"]["1"]["original"]
+one = o1[0]["ordersPerHour"]
+loss4, loss6 = 1 - o1[3]["ordersPerHour"] / (4 * one), 1 - o1[5]["ordersPerHour"] / (6 * one)
+text(s, M, 3.85, 3, 0.9, f"{loss4 * 100:.0f}%", size=60, font=F_LIGHT, color=SIGNAL, name="!!num")
+text(s, M, 4.78, 4.6, 0.3, "of a 4-picker team's capacity lost in narrow aisles", size=10.5, color=INK2, font=MONO, name="!!sub")
+facts = [("6 pickers", f"{loss6 * 100:.0f}% lost; month in {o1[5]['hours']:.1f} h vs {o2[5]['hours']:.1f} h with wide aisles"),
+         ("Slotting vs people", f"Optimized leads by +{(one / orig1[0]['ordersPerHour'] - 1) * 100:.0f}% with 1 picker, "
+                                f"+{(o1[5]['ordersPerHour'] / orig1[5]['ordersPerHour'] - 1) * 100:.0f}% with 6")]
+for i, (a, b) in enumerate(facts):
+    y = 5.3 + i * 0.62
+    hline(s, M, y, 4.6, color=INK if i == 0 else RULE)
+    text(s, M, y + 0.08, 4.6, 0.3, a, size=13, font=F_SEMI)
+    text(s, M, y + 0.36, 4.6, 0.3, b, size=10.5, color=INK2)
+# chart: orders per hour vs pickers (native, editable)
+from pptx.chart.data import CategoryChartData
+from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_MARKER_STYLE
+cd = CategoryChartData()
+cd.categories = [str(n) for n in CONG["pickers"]]
+cd.add_series("Perfect scaling", [round(one * n, 1) for n in CONG["pickers"]])
+cd.add_series("Wide aisles · 2 carts", [round(r["ordersPerHour"], 1) for r in o2])
+cd.add_series("Narrow aisles · 1 cart", [round(r["ordersPerHour"], 1) for r in o1])
+gf = s.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, Inches(5.6), Inches(1.0), Inches(4.25), Inches(5.55), cd)
+gf.name = "!!chart"
+ch = gf.chart
+ch.font.name, ch.font.size = F, Pt(10)
+ch.font.color.rgb = rgb(INK2)
+ch.has_legend = True
+ch.legend.position = XL_LEGEND_POSITION.TOP
+ch.legend.include_in_layout = False
+for ser, col, dash in zip(ch.plots[0].series, [MUTED, COBALT, SIGNAL], [True, False, False]):
+    ser.format.line.color.rgb = rgb(col)
+    ser.format.line.width = Pt(3 if col == SIGNAL else 2.25)
+    ser.smooth = False
+    if dash:
+        ser.format.line.dash_style = 4
+    ser.marker.style = XL_MARKER_STYLE.CIRCLE
+    ser.marker.size = 6
+    ser.marker.format.fill.solid()
+    ser.marker.format.fill.fore_color.rgb = rgb(col)
+    ser.marker.format.line.color.rgb = rgb(col)
+va, ca = ch.value_axis, ch.category_axis
+va.has_major_gridlines = True
+va.major_gridlines.format.line.color.rgb = rgb(RULE)
+va.format.line.fill.background()
+ca.format.line.color.rgb = rgb(INK)
+for ax, t in ((va, "orders per hour"), (ca, "pickers on the floor")):
+    ax.has_title = True
+    ax.axis_title.text_frame.text = t
+    r = ax.axis_title.text_frame.paragraphs[0].runs[0]
+    r.font.size, r.font.name, r.font.bold = Pt(9.5), F, False
+    r.font.color.rgb = rgb(MUTED)
+framed(s, IMG / "app_team.jpg", 10.1, 1.3, 2.62)
+text(s, 10.1, 2.85, 2.62, 1.2, "In the app: numbered pickers, a pulsing ring while queued, live waiting share and aisle-blocked IoT events.",
+     size=9.5, color=INK2, ls=1.1)
+text(s, 10.1, 4.2, 2.62, 1.6, [[("Backlog model. ", {"font": F_SEMI, "color": INK}),
+     ("Same 2,293 orders, one queue; each picker takes the next trip at the dock. Deterministic, 0.5 s steps.", {})]],
+     size=9.5, color=INK2, ls=1.1)
+
+# 11 — play it
+s = page(10, "PLAY IT", NOTES[10])
 title(s, "Can you beat\nthe optimizer?", w=4.6, size=36)
 framed(s, IMG / "app_game.jpg", 5.25, 1.0, 7.45, name="!!hero")
 feats = [("Swap racks", "The month re-scores instantly; ◆ marks what is bought together."),
          ("Live optimizer", "Annealing in a Web Worker on your layout. Here: 182.3 km in 14 s."),
-         ("See the traffic", "Rack visit colours and a floor heatmap of walking passes."),
+         ("Team mode", "1–6 pickers with aisle congestion; watch them queue."),
          ("IoT sensor mode", "RFID, UWB, pick-to-light and scan events, exported as JSON Lines.")]
 for i, (a, b) in enumerate(feats):
     y = 2.75 + i * 0.86
@@ -388,7 +456,7 @@ for i, (a, b) in enumerate(feats):
 text(s, M, 6.3, 4.4, 0.3, "Space replay · 1–5 layouts · H heat · B batch · I IoT · O optimize", size=8.5, color=MUTED, font=MONO)
 
 # 11 — close
-s = page(10, "WHAT'S NEXT", NOTES[10])
+s = page(11, "WHAT'S NEXT", NOTES[11])
 title(s, "From replay\nto a live twin", w=5.2, size=38)
 body(s, "A twin needs sensors. The replay already emits the events real devices would stream, so hardware can replace it one feed at a time.",
      y=2.75, w=4.8, size=13.5)
@@ -403,7 +471,7 @@ for i, (t, d, ev) in enumerate(cards):
          size=11, spc=60)
     text(s, x + 0.15, 6.2, cw - 0.3, 0.3, ev, size=9.5, font=MONO, color=INK)
 text(s, M, 4.25, 5.2, 0.7, "Thank you. Questions?", size=26, font=F_LIGHT, color=SIGNAL)
-text(s, M, 4.95, 5.2, 0.4, "Next: several pickers and aisle congestion.", size=11.5, color=INK2)
+text(s, M, 4.95, 5.2, 0.4, "Next: live sensor input and dynamic re-slotting.", size=11.5, color=INK2)
 
 prs.save(OUT)
 print("saved", OUT, len(prs.slides._sldIdLst), "slides")

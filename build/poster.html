@@ -73,7 +73,7 @@
 
   /* ladder of plans */
   .ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6mm; }
-  .plan img { height: 47mm; width: auto; display: block; margin: 0 auto; }
+  .plan img { height: 42mm; width: auto; display: block; margin: 0 auto; }
   .plan .cap { border-top: 1.2px solid var(--ink); margin-top: 2mm; padding-top: 1.5mm; display: flex; justify-content: space-between; align-items: baseline; }
   .plan .cap b { font-size: 12pt; font-weight: 600; }
   .plan .cap .pct { font-family: var(--mono); font-size: 10pt; }
@@ -88,19 +88,19 @@
   .routes .m.on b { color: var(--signal); }
   .routes .m span { font-family: var(--cond); font-weight: 700; letter-spacing: .14em; font-size: 8pt; color: var(--muted); }
 
-  .bars { display: grid; grid-template-columns: 19mm 1fr; row-gap: 1.2mm; align-items: center; font-size: 9pt; }
+  .bars { display: grid; grid-template-columns: 19mm 1fr; row-gap: .5mm; align-items: center; font-size: 9pt; }
   .bars .b { display: flex; align-items: center; gap: 1.5mm; font-family: var(--mono); font-size: 8pt; }
   .bars .b i { display: block; height: 2.6mm; }
   .key2 { display: flex; gap: 4mm; font-size: 8pt; color: var(--ink2); margin-bottom: 2mm; }
   .key2 i { display: inline-block; width: 2.4mm; height: 2.4mm; margin-right: 1.2mm; vertical-align: -.2mm; }
 
-  .shot { border: 1px solid var(--ink); box-shadow: 1.6mm 1.6mm 0 var(--ink); width: 100%; height: 55mm; object-fit: cover; object-position: 62% 40%; display: block; }
+  .shot { border: 1px solid var(--ink); box-shadow: 1.6mm 1.6mm 0 var(--ink); width: 100%; height: 50mm; object-fit: cover; object-position: 62% 40%; display: block; }
   .find { background: var(--ink); color: var(--paper); padding: 3mm 4.5mm; }
   .find h2 { color: #f3b8a9; border-top: none; padding-top: 0; }
-  .find p { color: #e6dfcf; font-size: 10pt; line-height: 1.38; }
+  .find p { color: #e6dfcf; font-size: 9.5pt; line-height: 1.38; }
   .find p b { color: #fff; }
   ul.feat { list-style: none; }
-  ul.feat li { border-bottom: 1px solid var(--rule); padding: 1.3mm 0; font-size: 9pt; color: var(--ink2); display: grid; grid-template-columns: 7mm 1fr; }
+  ul.feat li { border-bottom: 1px solid var(--rule); padding: .9mm 0; font-size: 9pt; color: var(--ink2); display: grid; grid-template-columns: 7mm 1fr; }
   ul.feat li i { font-style: normal; font-family: var(--mono); color: var(--signal); font-size: 8pt; }
   ul.feat li b { color: var(--ink); font-weight: 600; }
   .ev { font-family: var(--mono); font-size: 7.8pt; color: var(--ink); }
@@ -180,17 +180,18 @@
       <p style="font-size:8.5pt;margin-top:1.5mm">Invoice 532964, 9 lines: one of the month’s biggest wins. On average 95.1 → 80.1 m per order.</p>
     </div>
     <div>
-      <h2><i>§06</i>Proof: unseen orders &amp; batching</h2>
+      <h2><i>§06</i>Proof &amp; a team of pickers</h2>
       <div class="key2"><span><i style="background:var(--ink)"></i>full month</span><span><i style="background:var(--cobalt)"></i>unseen final week (766 orders)</span></div>
       <div class="bars">
         <span>ABC</span><span><span class="b"><i style="width:7.9%;background:var(--ink)"></i>2.5%</span><span class="b" style="color:var(--cobalt)"><i style="width:6%;background:var(--cobalt)"></i>1.9%</span></span>
         <span>Affinity</span><span><span class="b"><i style="width:35.8%;background:var(--ink)"></i>11.3%</span><span class="b" style="color:var(--cobalt)"><i style="width:35.4%;background:var(--cobalt)"></i>11.2%</span></span>
         <span><b>Optimized</b></span><span><span class="b"><i style="width:50%;background:var(--ink)"></i>15.8%</span><span class="b" style="color:var(--cobalt)"><i style="width:44%;background:var(--cobalt)"></i>13.9%</span></span>
       </div>
-      <div class="bars" style="margin-top:3mm;border-top:1px solid var(--rule);padding-top:2mm;grid-template-columns:36mm 1fr">
-        <span>Original, 1 order / trip</span><span class="b"><i style="width:62%;background:var(--ink2)"></i>218.1 km</span>
-        <span>Batch of 4 orders</span><span class="b"><i style="width:25%;background:var(--ink)"></i>88.2 km</span>
-        <span><b>Smart batch + optimized</b></span><span class="b" style="color:var(--signal)"><i style="width:20%;background:var(--signal)"></i>70.1 km · −68%</span>
+      <div class="key2" style="margin-top:2.5mm;border-top:1px solid var(--rule);padding-top:2mm"><span><b style="color:var(--ink)">Team of pickers</b> · orders/hour, optimized layout</span><span><i style="background:var(--signal)"></i>narrow aisle</span><span><i style="background:var(--cobalt)"></i>wide</span></div>
+      <div class="bars" style="grid-template-columns:19mm 1fr">
+        <span>1 picker</span><span><span class="b"><i style="width:9%;background:var(--signal)"></i>26.2 · no waiting</span></span>
+        <span>4 pickers</span><span><span class="b" style="color:var(--signal)"><i style="width:28%;background:var(--signal)"></i>80.8 · 23% waiting</span><span class="b" style="color:var(--cobalt)"><i style="width:35%;background:var(--cobalt)"></i>102.3</span></span>
+        <span><b>6 pickers</b></span><span><span class="b" style="color:var(--signal)"><i style="width:35%;background:var(--signal)"></i>101.4 · 35% waiting</span><span class="b" style="color:var(--cobalt)"><i style="width:50%;background:var(--cobalt)"></i>146.0</span></span>
       </div>
     </div>
   </section>
@@ -200,7 +201,7 @@
       <h2><i>§07</i>Play it: can you beat the optimizer?</h2>
       <img class="shot" src="img/app_game.jpg" alt="Screenshot of the app">
     </div>
-    <div style="display:flex;flex-direction:column;gap:4mm">
+    <div style="display:flex;flex-direction:column;gap:2.5mm">
       <div class="find">
         <h2><i style="color:#a9a395">§08</i>Key finding</h2>
         <p>The textbook ABC fix saves only <b>2.5%</b>: orders average 7 lines, so pickers still visit most aisles. Using <b>what is bought together</b> saves 4–5× more, and it holds on orders the model never saw.</p>
@@ -208,7 +209,8 @@
       <ul class="feat">
         <li><i>01</i><span><b>Swap racks</b> · the whole month re-scores instantly</span></li>
         <li><i>02</i><span><b>Live optimizer</b> · annealing in a Web Worker; 182.3 km in 14 s</span></li>
-        <li><i>03</i><span><b>IoT sensor mode</b> · RFID gate, UWB cart tag, pick-to-light, barcode scans, as JSON Lines</span></li>
+        <li><i>03</i><span><b>Team mode</b> · 1–6 pickers queue at full aisles; slotting gain shrinks 9% → 5%</span></li>
+        <li><i>04</i><span><b>IoT sensor mode</b> · RFID gate, UWB cart tag, pick-to-light, barcode scans, as JSON Lines</span></li>
       </ul>
     </div>
   </section>

@@ -233,6 +233,27 @@ export function createScene(el, wh) {
   picker.position.set(dock[0], 0, dock[1]);
   scene.add(picker);
 
+  // ---- team of pickers (multi-picker mode): picker 0 above plus up to five clones sharing its geometry
+  const TEAM_COLORS = [PAL.signal, PAL.cobalt, PAL.moss, PAL.plum, '#c98a00', PAL.graphite];
+  const mkTag = (i) => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture(String(i + 1), { size: 92, color: '#ffffff', bg: TEAM_COLORS[i], w: 128, h: 128 }), depthTest: false }));
+    s.scale.set(0.55, 0.55, 1); s.position.y = 2.4; s.renderOrder = 3; s.visible = false;
+    return s;
+  };
+  const team = [{ g: picker, ring, tag: mkTag(0), waiting: false }];
+  picker.add(team[0].tag);
+  for (let i = 1; i < TEAM_COLORS.length; i++) {
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(body.geometry, lambert(TEAM_COLORS[i]));
+    b.position.y = 0.95;
+    const rg = new THREE.Mesh(ring.geometry, new THREE.MeshBasicMaterial({ color: TEAM_COLORS[i], transparent: true, opacity: 0.9 }));
+    rg.rotation.x = -Math.PI / 2; rg.position.y = 0.02;
+    const tag = mkTag(i);
+    g.add(blob.clone(), b, head.clone(), helmet.clone(), cart.clone(), totes.clone(), rg, tag);
+    g.visible = false; scene.add(g);
+    team.push({ g, ring: rg, tag, waiting: false });
+  }
+
   // ---- route line
   const routeMat = new THREE.LineDashedMaterial({ color: PAL.cobalt, dashSize: 0.6, gapSize: 0.35 });
   const routeLine = new THREE.Line(new THREE.BufferGeometry(), routeMat);
@@ -286,6 +307,7 @@ export function createScene(el, wh) {
     }
     // continuous animation only while something is actually moving on screen
     const animating = playing || flashes.size > 0 || partnerMarks[0].visible || uwb.visible || litSlots.length > 0;
+    if (animating) for (const m of team) if (m.waiting) m.ring.material.opacity = 0.55 + 0.45 * Math.sin(anim * 9);
     if (animating) {
       anim += dt;
       if (moving && playing) bob += dt * 10;
@@ -349,6 +371,22 @@ export function createScene(el, wh) {
       invalidate();
     },
     setUwb(on) { uwb.visible = on; invalidate(); },
+    // list of {x, z, heading, waiting} or null for single-picker mode
+    setTeam(list) {
+      team.forEach((m, i) => {
+        const p = list && list[i];
+        m.tag.visible = !!p;
+        if (i > 0) m.g.visible = !!p;
+        m.waiting = !!(p && p.waiting);
+        m.ring.scale.setScalar(m.waiting ? 1.7 : 1);
+        if (!m.waiting) m.ring.material.opacity = 0.9;
+        if (!p) return;
+        // pickers queued at the same aisle entrance stand side by side
+        m.g.position.set(p.x + (m.waiting ? (i - 2.5) * 0.55 : 0), 0, p.z - (m.waiting ? 0.7 : 0));
+        if (p.heading !== null && p.heading !== undefined) m.g.rotation.y = p.heading;
+      });
+      invalidate();
+    },
     setPicker(x, z, heading, isMoving) {
       picker.position.set(x, 0, z);
       if (heading !== null) picker.rotation.y = heading;
