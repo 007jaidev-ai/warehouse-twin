@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Picking Floor Twin: Internal Guide</title>
+<style>
+  @page {
+    size: A4; margin: 15mm 15mm 16mm 15mm;
+    @bottom-left { content: "Picking Floor Digital Twin · internal guide v2"; font: 7.5pt "Cascadia Mono", Consolas, monospace; color: #8a8578; }
+    @bottom-right { content: counter(page) " / " counter(pages); font: 7.5pt "Cascadia Mono", Consolas, monospace; color: #8a8578; }
+  }
+  @page :first { @bottom-left { content: none; } @bottom-right { content: none; } }
+  :root {
+    --paper:#f3eee3; --card:#fbf8f1; --ink:#1f2226; --ink2:#3b3f45; --muted:#7d786c; --rule:#d6cdbc;
+    --signal:#e0442a; --cobalt:#2340b8; --moss:#2e7d4f; --plum:#a8307e; --amber:#c98a00;
+    --head: Bahnschrift, "DIN Alternate", "Segoe UI", sans-serif;
+    --body: "Segoe UI", Inter, Arial, sans-serif;
+    --mono: "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #fff; }
+  body { font-family: var(--body); color: var(--ink); font-size: 9.8pt; line-height: 1.5; margin: 0; }
+  h1, h2, h3, .cover h1 { font-family: var(--head); }
+  h1 { font-size: 18pt; font-weight: 600; margin: 0 0 3.5mm; padding-bottom: 2mm; border-bottom: 2px solid var(--ink); break-after: avoid; letter-spacing: -0.01em; }
+  h1 .n { color: var(--signal); margin-right: 3mm; font-weight: 400; }
+  h1 .tag { float: right; font: 600 7.5pt var(--mono); letter-spacing: .08em; color: var(--muted); margin-top: 3.5mm; }
+  section.chap { margin-top: 9mm; }
+  section.chap.pb { break-before: page; margin-top: 0; }
+  h2 { font-size: 12pt; font-weight: 600; margin: 5.5mm 0 1.8mm; break-after: avoid; }
+  h2::before { content: ""; display: inline-block; width: 2.4mm; height: 2.4mm; background: var(--signal); margin-right: 2.2mm; vertical-align: 0.2mm; }
+  h3 { font-size: 10.4pt; font-weight: 600; margin: 3.8mm 0 1.2mm; break-after: avoid; }
+  p { margin: 0 0 2.2mm; }
+  ul, ol { margin: 0 0 2.4mm; padding-left: 5mm; }
+  li { margin: 0.5mm 0; }
+  b { font-weight: 600; }
+  code { font-family: var(--mono); font-size: 8.4pt; background: #efe9dc; padding: 0 2.5px; border-radius: 2px; }
+  pre { font-family: var(--mono); font-size: 8pt; line-height: 1.45; background: var(--ink); color: #ebe5d8; padding: 3mm 3.5mm; margin: 1.5mm 0 3mm; white-space: pre-wrap; break-inside: avoid; border-left: 3px solid var(--signal); }
+  pre .c { color: #a9a395; } pre .k { color: #f0a58f; } pre .s { color: #9fd3b0; }
+  table { width: 100%; border-collapse: collapse; margin: 1.2mm 0 3.2mm; font-size: 8.9pt; }
+  tr { break-inside: avoid; }
+  th { text-align: left; font: 600 7.6pt var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 1.4mm 2mm; border-bottom: 1.5px solid var(--ink); }
+  td { padding: 1.3mm 2mm; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { white-space: nowrap; }
+  tr.hi td { background: #fbeee9; }
+  .good { color: var(--moss); font-weight: 600; } .bad { color: var(--signal); font-weight: 600; }
+  .box { border: 1px solid var(--ink); background: var(--card); padding: 2.6mm 3.4mm; margin: 2mm 0 3.2mm; break-inside: avoid; box-shadow: 1.6mm 1.6mm 0 var(--rule); }
+  .box > :last-child { margin-bottom: 0; }
+  .box .lbl { font: 700 7.4pt var(--mono); letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 1mm; }
+  .box.new { border-color: var(--moss); } .box.new .lbl { color: var(--moss); }
+  .box.warn { border-color: var(--signal); } .box.warn .lbl { color: var(--signal); }
+  .box.why .lbl { color: var(--cobalt); }
+  .pill { display: inline-block; font: 700 6.8pt var(--mono); letter-spacing: .08em; padding: 0.3mm 1.4mm; border: 1px solid currentColor; vertical-align: 0.4mm; margin-left: 1.2mm; }
+  .pill.new { color: var(--moss); } .pill.chg { color: var(--amber); } .pill.same { color: var(--muted); }
+  .keep { break-inside: avoid; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .grid2 > div > :last-child { margin-bottom: 0; }
+  figure { margin: 2mm 0 3.5mm; break-inside: avoid; }
+  figure img { width: 100%; display: block; border: 1px solid var(--ink); }
+  figcaption { font-size: 8pt; color: var(--muted); margin-top: 1.2mm; }
+  svg { display: block; width: 100%; height: auto; }
+  svg text { font-family: Bahnschrift, "Segoe UI", sans-serif; }
+  .qa dt { font-weight: 600; margin-top: 2.4mm; break-after: avoid; }
+  .qa dd { margin: 0.6mm 0 0 4mm; }
+  .toc { columns: 2; column-gap: 8mm; margin: 0; padding: 0; list-style: none; }
+  .toc li { display: flex; gap: 2.5mm; padding: 1.1mm 0; border-bottom: 1px solid var(--rule); break-inside: avoid; }
+  .toc li span:first-child { font: 600 9pt var(--mono); color: var(--signal); width: 6mm; }
+  .small { font-size: 8.4pt; color: var(--ink2); }
+
+  /* cover */
+  .cover { height: 263mm; display: flex; flex-direction: column; background: var(--paper); margin: -1mm -1mm 0; padding: 14mm 13mm 11mm; }
+  .cover .run { display: flex; justify-content: space-between; font: 600 7.6pt var(--mono); letter-spacing: .12em; color: var(--muted); border-bottom: 1px solid var(--ink); padding-bottom: 2mm; }
+  .cover h1 { border: 0; font-size: 40pt; line-height: 1.02; margin: 15mm 0 4mm; padding: 0; font-weight: 600; }
+  .cover h1 em { font-style: normal; font-weight: 300; color: var(--signal); display: block; }
+  .cover .lede { font-size: 12pt; max-width: 150mm; color: var(--ink2); }
+  .cover .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5mm; margin: 10mm 0 8mm; }
+  .cover .kpis div { border-top: 1.5px solid var(--ink); padding-top: 2mm; font-size: 8.4pt; color: var(--ink2); }
+  .cover .kpis b { display: block; font: 300 21pt var(--head); color: var(--ink); margin-bottom: 1mm; }
+  .cover .kpis .r b { color: var(--signal); }
+  .cover .how { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; font-size: 9pt; }
+  .cover .how h3 { margin-top: 0; font-size: 9pt; font: 700 7.6pt var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--signal); }
+  .cover .foot { margin-top: 8mm; font: 7.6pt var(--mono); color: var(--muted); display: flex; justify-content: space-between; border-top: 1px solid var(--ink); padding-top: 2mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ COVER -->
+<div class="cover">
+  <div class="run"><span>TEAM GITHAPPENS · INTERNAL</span><span>ELECTRO-SOLVE 2026 · 29 OCT 2026</span></div>
+  <h1>Picking Floor<br>Digital Twin<em>How it works, layer by layer</em></h1>
+  <p class="lede">The internal guide to the code as it stands on branch <code>RK-multiple-pickers-implemented</code>: every layer from the raw Excel file to the 3D floor, what each file does, how the parts talk to each other, what changed in the last two commits, and what is still rough.</p>
+  <div class="kpis">
+    <div><b>2,293</b>real orders replayed, 16,225 pick lines</div>
+    <div class="r"><b>−15.8%</b>walking, Optimized layout vs Original</div>
+    <div class="r"><b>−67.9%</b>Optimized + smart batching vs Original, 1 order/trip</div>
+    <div><b>23%</b>capacity lost to queueing, 4 pickers, narrow aisles</div>
+  </div>
+  <ol class="toc">
+    <li><span>01</span><span>Big picture: architecture and repo map</span></li>
+    <li><span>02</span><span>What changed since the first version</span></li>
+    <li><span>03</span><span>Layer 0 · Data pipeline</span></li>
+    <li><span>04</span><span>Layer 1 · Warehouse graph</span></li>
+    <li><span>05</span><span>Layer 2 · Routing, scoring, batching</span></li>
+    <li><span>06</span><span>Layer 3 · Layouts and the optimizer</span></li>
+    <li><span>07</span><span>Layer 4 · Team of pickers (congestion)</span></li>
+    <li><span>08</span><span>Layer 5 · 3D scene</span></li>
+    <li><span>09</span><span>Layer 6 · App controller and UI</span></li>
+    <li><span>10</span><span>Layer 7 · IoT sensor mode</span></li>
+    <li><span>11</span><span>Layer 8 · Renders, deck and posters</span></li>
+    <li><span>12</span><span>Testing</span></li>
+    <li><span>13</span><span>All the numbers</span></li>
+    <li><span>14</span><span>Known issues and loose ends</span></li>
+    <li><span>15</span><span>Questions on the new features</span></li>
+    <li><span>16</span><span>Command cheat sheet and glossary</span></li>
+  </ol>
+  <div class="how">
+    <div><h3>How to read this</h3>Chapters 3–10 follow the data upwards: each layer only uses the ones below it. Each chapter starts with the files it covers and marks them <span class="pill new">NEW</span> <span class="pill chg">CHANGED</span> or <span class="pill same">SAME</span> relative to the initial commit.</div>
+    <div><h3>Relation to the review-prep guide</h3><code>docs/review-prep.html</code> was written for the first version and is still right about the data, graph, routing and layouts. This guide covers those too, but more briefly, and spends its space on the new parts. Its demo script is now out of date.</div>
+  </div>
+  <div class="foot"><span>Rohith Krishna A K (25BCE2027) · Jaidev A (25BCE0971) · Guide: Dr. Jaffino, SENSE, VIT</span><span>docs/internal-guide.html</span></div>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="chap pb">
+<h1><span class="n">01</span>Big picture</h1>
+
+<p>One sentence: <b>Python cleans the raw orders once; a single JavaScript simulation core turns any product-to-shelf layout into walking distance and time; that same core runs offline in Node (to build the reference layouts, the congestion study and the Blender data), in a browser Web Worker (live optimizer) and on the browser main thread (scoring, replay, game).</b> Everything the user sees, and every number on the deck and posters, comes out of that one core, so the numbers always agree.</p>
+
+<figure>
+<svg viewBox="0 0 680 430" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f2226"/></marker>
+  </defs>
+  <style>
+    .b{fill:#fbf8f1;stroke:#1f2226;stroke-width:1.2}
+    .bn{fill:#eef6f0;stroke:#2e7d4f;stroke-width:1.6}
+    .core{fill:#f3eee3;stroke:#1f2226;stroke-width:1.5}
+    .t{font-size:12px;font-weight:600;fill:#1f2226}
+    .s{font-size:10px;fill:#3b3f45}
+    .lay{font-size:9px;font-weight:700;fill:#e0442a;letter-spacing:1.2px}
+    .ln{stroke:#1f2226;stroke-width:1.2;fill:none;marker-end:url(#ar)}
+    .lnd{stroke:#7d786c;stroke-width:1.1;fill:none;stroke-dasharray:4 3;marker-end:url(#ar)}
+  </style>
+  <!-- layer 0 -->
+  <text x="8" y="22" class="lay">LAYER 0 · DATA (once, offline)</text>
+  <rect x="8" y="30" width="664" height="40" class="b"/>
+  <text x="20" y="48" class="t">preprocess/preprocess.py</text>
+  <text x="20" y="62" class="s">online_retail_II.xlsx (~1M lines) → clean → Nov 2010 → top 100 products</text>
+  <text x="470" y="48" class="t">public/data/</text>
+  <text x="470" y="62" class="s">products · orders · stats .json</text>
+  <path d="M340 70 V92" class="ln"/>
+  <!-- core -->
+  <text x="8" y="106" class="lay">LAYERS 1–4 · SIMULATION CORE  web/src/sim/  (plain JS, runs in Node and browser)</text>
+  <rect x="8" y="114" width="664" height="92" class="core"/>
+  <rect x="18" y="124" width="150" height="72" class="b"/><text x="28" y="142" class="t">warehouse.js</text><text x="28" y="158" class="s">floor graph, 61 nodes,</text><text x="28" y="171" class="s">64 edges, 100 slots,</text><text x="28" y="184" class="s">Floyd–Warshall</text>
+  <rect x="178" y="124" width="150" height="72" class="b"/><text x="188" y="142" class="t">route.js</text><text x="188" y="158" class="s">trips, NN + 2-opt route,</text><text x="188" y="171" class="s">scoreLayout, traffic,</text><text x="188" y="184" class="s">smart batching ★</text>
+  <rect x="338" y="124" width="104" height="72" class="b"/><text x="348" y="142" class="t">layouts.js</text><text x="348" y="158" class="s">Original, ABC,</text><text x="348" y="171" class="s">Affinity,</text><text x="348" y="184" class="s">co-occurrence</text>
+  <rect x="452" y="124" width="100" height="72" class="bn"/><text x="462" y="142" class="t">anneal.js ★</text><text x="462" y="158" class="s">simulated</text><text x="462" y="171" class="s">annealing,</text><text x="462" y="184" class="s">shared</text>
+  <rect x="562" y="124" width="100" height="72" class="bn"/><text x="572" y="142" class="t">multi.js ★</text><text x="572" y="158" class="s">team of pickers,</text><text x="572" y="171" class="s">aisle capacity,</text><text x="572" y="184" class="s">queueing</text>
+  <path d="M168 160 H178" class="ln"/>
+  <!-- consumers -->
+  <path d="M170 206 V236" class="ln"/><path d="M510 206 V236" class="ln"/>
+  <text x="8" y="230" class="lay">NODE (offline)</text>
+  <text x="350" y="230" class="lay">BROWSER (live)</text>
+  <rect x="8" y="238" width="324" height="104" class="b"/>
+  <text x="20" y="257" class="t">web/scripts/optimize.mjs</text><text x="190" y="257" class="s">→ layouts.json</text>
+  <text x="20" y="276" class="t">web/scripts/congestion.mjs ★</text><text x="208" y="276" class="s">→ congestion.json</text>
+  <text x="20" y="295" class="t">build/blender/dump_scene.mjs ★</text><text x="218" y="295" class="s">→ scene.json</text>
+  <text x="20" y="318" class="s">layouts.json is loaded by the app; congestion.json and</text>
+  <text x="20" y="331" class="s">scene.json feed the deck, posters and Blender.</text>
+  <rect x="348" y="238" width="324" height="104" class="b"/>
+  <text x="360" y="257" class="t">src/main.js</text><text x="440" y="257" class="s">state, scoring, game, replay, IoT, team</text>
+  <text x="360" y="276" class="t">src/scene/scene.js</text><text x="483" y="276" class="s">Three.js floor, racks, pickers</text>
+  <text x="360" y="295" class="t">src/sim/optWorker.js ★</text><text x="510" y="295" class="s">live optimizer thread</text>
+  <text x="360" y="318" class="s">index.html + style.css: panel 01–05, HUD, toolbar,</text>
+  <text x="360" y="331" class="s">IoT feed. Built by Vite into web/dist (offline demo).</text>
+  <path d="M332 268 H346" class="lnd"/>
+  <!-- outputs -->
+  <path d="M170 342 V372" class="ln"/><path d="M510 342 V372" class="ln"/>
+  <text x="8" y="366" class="lay">LAYER 8 · PRESENTATION ★</text>
+  <rect x="8" y="374" width="324" height="48" class="bn"/>
+  <text x="20" y="393" class="t">Blender scene.py → floor bake + renders</text>
+  <text x="20" y="410" class="s">prep_assets.py → build_deck.py · poster.html · official poster</text>
+  <rect x="348" y="374" width="324" height="48" class="b"/>
+  <text x="360" y="393" class="t">The demo app</text>
+  <text x="360" y="410" class="s">start-demo.bat → npm run build && preview (fully offline)</text>
+  <path d="M332 398 H346" class="lnd"/>
+  <text x="672" y="22" class="s" text-anchor="end">★ = added by the last two commits</text>
+</svg>
+<figcaption>Fig. 1 · Layers and data flow. Solid arrows: code or data dependency. Dashed: the baked floor texture (tex/floor.jpg) from Blender is loaded by the app.</figcaption>
+</figure>
+
+<h2>Repo map</h2>
+<table>
+  <tr><th>Path</th><th>Layer</th><th>What it is</th><th></th></tr>
+  <tr><td><code>preprocess/preprocess.py</code></td><td>0</td><td>pandas cleaning of Online Retail II; writes the three data JSONs</td><td><span class="pill same">SAME</span></td></tr>
+  <tr><td><code>web/src/sim/warehouse.js</code></td><td>1</td><td>geometry config (<code>CFG</code>), walking graph, slots, all-pairs shortest paths</td><td><span class="pill same">SAME</span></td></tr>
+  <tr><td><code>web/src/sim/route.js</code></td><td>2</td><td>trips, routing, scoring, edge traffic, <b>smart batching</b></td><td><span class="pill chg">CHANGED</span></td></tr>
+  <tr><td><code>web/src/sim/layouts.js</code></td><td>3</td><td>Original / ABC / Affinity layouts, co-occurrence, partner hints</td><td><span class="pill same">SAME</span></td></tr>
+  <tr><td><code>web/src/sim/anneal.js</code></td><td>3</td><td>simulated annealing, moved out of optimize.mjs so the browser can use it</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>web/src/sim/multi.js</code></td><td>4</td><td>several pickers sharing the floor, aisle capacity, waiting</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>web/src/sim/optWorker.js</code></td><td>3/6</td><td>Web Worker wrapper that runs <code>anneal()</code> off the main thread</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>web/scripts/optimize.mjs</code></td><td>3</td><td>offline: builds layouts.json + hold-out test; now calls anneal.js</td><td><span class="pill chg">CHANGED</span></td></tr>
+  <tr><td><code>web/scripts/congestion.mjs</code></td><td>4</td><td>offline: 1–6 pickers × 4 layouts × 2 aisle widths → congestion.json</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>web/src/scene/scene.js</code></td><td>5</td><td>Three.js scene: baked floor, instanced racks, picker(s), markers, lamps</td><td><span class="pill chg">CHANGED</span></td></tr>
+  <tr><td><code>web/src/main.js</code></td><td>6–7</td><td>app controller: state, caches, scoreboard, game, replay, optimizer UI, team UI, IoT</td><td><span class="pill chg">CHANGED</span></td></tr>
+  <tr><td><code>web/index.html</code>, <code>style.css</code></td><td>6</td><td>panel sections 01–05, HUD, toolbar, IoT panel; "warehouse ledger" theme</td><td><span class="pill chg">CHANGED</span></td></tr>
+  <tr><td><code>web/public/tex/floor.jpg</code></td><td>5/8</td><td>top-down Blender bake of the floor (shadows, AO, markings), 159 KB</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>build/blender/*</code></td><td>8</td><td>scene.json dump, Blender scene/bake/render script, bake post-process</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>build/prep_assets.py</code></td><td>8</td><td>renders → JPEG, plan diagrams from data, route_stats.json</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>build/build_deck.py</code></td><td>8</td><td>python-pptx deck with Morph transitions</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>build/poster.html</code>, <code>build_official_poster.py</code></td><td>8</td><td>designed A3 poster (HTML → PDF) and the SENSE-template poster (PPTX)</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>build/test/stress.mjs</code>, <code>team.mjs</code></td><td>–</td><td>headless-Edge stress tests (puppeteer-core)</td><td><span class="pill new">NEW</span></td></tr>
+  <tr><td><code>web/dist/</code></td><td>–</td><td>committed Vite build for the offline demo; rebuild after any source change</td><td><span class="pill chg">CHANGED</span></td></tr>
+</table>
+
+<div class="box why"><span class="lbl">The rule that holds the project together</span>
+Nothing outside <code>web/src/sim/</code> computes a distance. The app, the optimizer, the congestion study and the Blender dump all import the same modules. If two numbers disagree somewhere, the cause is different <i>inputs</i> (layout, trip mode, iterations), never a second implementation. Keep it that way when adding features.</div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="chap">
+<h1><span class="n">02</span>What changed since the first version</h1>
+<p>Two commits by Rohith on 29 Oct 2026 sit on top of the initial commit. Together they are about +3,250 / −325 lines of source (excluding images, decks and the built <code>dist</code>).</p>
+
+<h2>Commit 2923363 · live optimizer, IoT sensors, smart batching, redesign</h2>
+<table>
+  <tr><th style="width:27%">Feature</th><th>What it does</th><th style="width:24%">Where</th></tr>
+  <tr><td><b>Live optimizer</b></td><td>Runs simulated annealing (24,000 swaps, ~15 s) on <i>your</i> layout in a background thread. Racks recolour as it improves; a chart shows progress against the ABC / Affinity / Optimized lines.</td><td><code>anneal.js</code>, <code>optWorker.js</code>, main.js §live optimizer</td></tr>
+  <tr><td><b>Shared annealer</b></td><td>The SA loop moved out of <code>optimize.mjs</code> into <code>anneal.js</code> with an <code>onProgress</code> callback. Same algorithm, same seed behaviour, so offline results are unchanged.</td><td><code>anneal.js</code>, <code>optimize.mjs</code></td></tr>
+  <tr><td><b>Smart batching</b></td><td>Third trip mode. Each trip = next order + the 3 orders (out of the next 12) whose aisles overlap it most. 12–15% less walking than plain batches of 4.</td><td><code>route.js · buildSmartTrips</code></td></tr>
+  <tr><td><b>IoT sensor mode</b></td><td>The replay emits the events real devices would send: RFID dock gate, UWB cart tag, pick-to-light ON/OFF, barcode confirmations. Live feed + JSON Lines download; green lamps on racks; pulsing UWB ring.</td><td>main.js §IoT, scene.js lamps</td></tr>
+  <tr><td><b>Blender floor + render-on-demand</b></td><td>The floor is one pre-rendered texture with baked shadows/AO, so no realtime shadow maps. The renderer only draws when something changes (0 draw calls idle).</td><td><code>build/blender/</code>, scene.js</td></tr>
+  <tr><td><b>Visual redesign</b></td><td>"Warehouse ledger" light theme (paper, graphite, signal red, Bahnschrift). Renamed to "Picking Floor Digital Twin". Numbered panels.</td><td>index.html, style.css</td></tr>
+  <tr><td><b>Robustness</b></td><td>Replay snapshots its trip list and layout; swaps/undo blocked while optimizing; localStorage and URL params validated.</td><td>main.js</td></tr>
+  <tr><td><b>Presentation assets</b></td><td>11-slide deck generator, A3 poster, renders, app screenshots, stress test.</td><td><code>build/</code></td></tr>
+</table>
+
+<div class="keep"><h2>Commit 62a19d1 · team of pickers with aisle congestion</h2>
+<table>
+  <tr><th style="width:27%">Feature</th><th>What it does</th><th style="width:24%">Where</th></tr>
+  <tr><td><b>Congestion model</b></td><td>1–6 pickers clear the month's backlog from one queue. A narrow aisle holds 1 cart, a wide one 2; a picker reaching a full aisle waits at its entrance.</td><td><code>multi.js</code></td></tr>
+  <tr><td><b>Team panel (04)</b></td><td>Picker count, Narrow/Wide toggle, per-layout table (month duration, orders/h, waiting %, gain vs Original), orders/h-vs-pickers chart.</td><td>main.js §team, index.html</td></tr>
+  <tr><td><b>Team replay</b></td><td>▶ animates numbered, colour-coded pickers; queued pickers get a pulsing ring; status card per picker; <code>aisle_blocked</code>/<code>aisle_enter</code> IoT events.</td><td>main.js §replay, scene.js team</td></tr>
+  <tr><td><b>Congestion study</b></td><td>Offline script producing the table used by the deck and both posters.</td><td><code>congestion.mjs</code></td></tr>
+  <tr><td><b>Official poster</b></td><td>SENSE/VIT template filled programmatically with native PPTX tables and chart.</td><td><code>build_official_poster.py</code></td></tr>
+</table></div>
+
+<h2>The old "future work" list, revisited</h2>
+<table>
+  <tr><th>Listed in review-prep as future work</th><th>Status now</th></tr>
+  <tr><td>One picker, no congestion</td><td class="good">Done: multi.js, team panel, congestion study</td></tr>
+  <tr><td>Batches = 4 consecutive orders → smart batching</td><td class="good">Done: buildSmartTrips (aisle-overlap, window of 12)</td></tr>
+  <tr><td>Optimizer runs offline → Web Worker</td><td class="good">Done: optWorker.js, live chart</td></tr>
+  <tr><td>Replays history → live scanner / tag feed</td><td><b>Simulated</b>: the replay emits a realistic event stream; nothing reads real devices yet</td></tr>
+  <tr><td>Exact Ratliff–Rosenthal routing</td><td>Open</td></tr>
+  <tr><td>Product volume / cube-per-order slotting</td><td>Open (no dimensions in the dataset)</td></tr>
+  <tr><td>Golden-zone / shelf-height effects</td><td>Open</td></tr>
+  <tr><td>Multi-zone model with reserve replenishment</td><td>Open</td></tr>
+</table>
+<p class="small">Also in this working tree (not committed yet): the "PS 4.2" label removed from the app, README and A3 poster; the IoT panel made draggable.</p>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="chap">
+<h1><span class="n">03</span>Layer 0 · Data pipeline<span class="tag">preprocess/preprocess.py <span class="pill same">SAME</span></span></h1>
+<p>Runs once, offline. Input: the UCI <b>Online Retail II</b> workbook (UK gift wholesaler, Dec 2009 – Dec 2011, CC BY 4.0, one row per invoice line). Output: three small JSON files the rest of the project reads. The browser never touches the 44 MB Excel file.</p>
+<table>
+  <tr><th>Step</th><th>Rule</th><th class="num">Lines after</th></tr>
+  <tr><td>Load + cache</td><td>Both sheets; each saved to CSV on first run (Excel parsing is ~1 min/sheet); <code>drop_duplicates()</code> removes the Dec-2010 overlap</td><td class="num">–</td></tr>
+  <tr><td>One month</td><td><code>InvoiceDate</code> in 2010-11 (pre-Christmas peak)</td><td class="num">76,584</td></tr>
+  <tr><td>Cancellations</td><td>Invoice starting with "C" (−1,192)</td><td class="num">75,392</td></tr>
+  <tr><td>Non-product codes</td><td>POST, DOT, M, BANK CHARGES, AMAZONFEE, … and <code>^(gift_|TEST|DCGS|BOXCHARGE)</code> (−282)</td><td class="num">75,110</td></tr>
+  <tr><td>Invalid rows</td><td>qty ≤ 0, price ≤ 0, or missing description (−353)</td><td class="num">74,757</td></tr>
+  <tr><td>Define a pick</td><td>group by (Invoice, StockCode): one visit per product per order, quantities summed</td><td class="num">–</td></tr>
+  <tr><td>Top 100</td><td>rank products by number of pick lines; keep the top 100 (22.1% of all picks)</td><td class="num">16,225</td></tr>
+  <tr><td>Orders</td><td>each invoice's lines on those products, sorted by time</td><td class="num">2,293 orders</td></tr>
+</table>
+<pre><span class="c">// products.json  (id = rank by picks, 0 = most picked)</span>
+{ "id": 0, "code": "85123A", "name": "White Hanging Heart T-Light Holder", "picks": 389, ... }
+<span class="c">// orders.json    (items = [productId, quantity])</span>
+{ "id": "529995", "t": "2010-11-01 08:56", "items": [[0, 6], [57, 4]] }
+<span class="c">// stats.json     every cleaning count; shown in the app under "About the data &amp; model"</span></pre>
+<div class="box why"><span class="lbl">Why lines, not units</span>A picker walks to a slot once per order line, whatever the quantity. Lines drive walking; quantity only affects pick time. The modelled area is a <b>forward pick zone</b> of the 100 fastest products (3% of the range, 22% of picks), which is what real warehouses optimise first.</div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section class="chap">
+<h1><span class="n">04</span>Layer 1 · Warehouse graph<span class="tag">web/src/sim/warehouse.js <span class="pill same">SAME</span></span></h1>
+<p>The floor is a graph. The picker can only move along its edges, and no edge goes through a rack, so every distance automatically "follows the aisles".</p>
+<div class="grid2">
+<div>
+<h3>Geometry (metres)</h3>
+<pre>   back cross-aisle (z = 21.5) ───────────
+   R|A|R R|A|R R|A|R R|A|R R|A|R
+   R|A|R R|A|R R|A|R R|A|R R|A|R
+   front cross-aisle (z = −1.5) ──────────
+                [DOCK] (12.5, −4.5)
+ R = rack 1 m deep · A = aisle 3 m wide
+ pitch 5 m · 10 bays × 2 m = 20 m deep</pre>
+</div>
+<div>
+<h3><code>CFG</code></h3>
+<table>
+  <tr><td>aisles × bays</td><td class="num">5 × 10, both sides</td></tr>
+  <tr><td>slots</td><td class="num">5 × 2 × 10 = 100</td></tr>
+  <tr><td>bayW · rackD · aisleW · crossW</td><td class="num">2 · 1 · 3 · 3 m</td></tr>
+  <tr><td>walkSpeed</td><td class="num">1.2 m/s (with cart)</td></tr>
+  <tr><td>pickSecPerLine</td><td class="num">10 s</td></tr>
+  <tr><td>batchSize</td><td class="num">4 orders / trip</td></tr>
+</table>
+</div>
+</div>
+<h3>Nodes, edges, slots</h3>
+<ul>
+  <li><b>Nodes (61)</b>: per aisle a front-end node, 10 bay nodes and a back-end node (12 × 5 = 60), plus the dock. Node id = <code>aisle × 12 + k</code>; <code>k = 0</code> is the front end, <code>k = 11</code> the back end. This numbering matters again in Layer 4, where <code>aisleOf()</code> uses it.</li>
+  <li><b>Edges (64)</b>: 11 along each aisle (55), front and back cross-aisle links between neighbouring aisles (8), dock to the front of the middle aisle (1). Weight = Euclidean length.</li>
+  <li><b>Slots (100)</b>: aisle × side × bay. Both rack faces of a bay share one pick node (the picker stands in the aisle centre), so a face-to-face pair costs no extra walking. Labels like <code>A3-L04</code> number aisles 1→5 left-to-right <i>as seen from the dock</i>, which is mirrored relative to the internal <code>a</code> index. Each slot caches <code>dockDist</code>.</li>
+</ul>
+<h3>All-pairs shortest paths</h3>
+<pre><span class="k">for</span> k, i, j:  <span class="k">if</span> dist[i][k] + dist[k][j] &lt; dist[i][j]:
+                 dist[i][j] = dist[i][k] + dist[k][j];  next[i][j] = next[i][k]</pre>
+<p>Floyd–Warshall, 61³ ≈ 227k steps, done once at start-up. It gives <code>d(u, v)</code> in O(1) and <code>path(u, v)</code> (via the next-hop table) for drawing routes, the traffic heatmap and moving pickers node by node in Layer 4.</p>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="chap">
+<h1><span class="n">05</span>Layer 2 · Routing, scoring, batching<span class="tag">web/src/sim/route.js <span class="pill chg">CHANGED</span></span></h1>
+<h2>Core vocabulary</h2>
+<ul>
+  <li><b>Layout</b>: <code>productAt[slot] = productId</code>, a permutation of 100. <code>slotOfProduct()</code> inverts it.</li>
+  <li><b>Trip</b>: one walk dock → picks → dock: <code>{ orders: [ids], products: [unique ids], lines }</code>. Every distance in the project is a sum over trips.</li>
+</ul>
+<table class="keep">
+  <tr><th>Function</th><th>What it does</th></tr>
+  <tr><td><code>buildTrips(orders, n)</code></td><td><b>1 order</b> (n = 1) or <b>Batch ×4</b> (n = 4 consecutive orders, one cart, 4 totes). Products deduplicated, line count kept.</td></tr>
+  <tr><td><code>routeNodes(wh, nodes)</code></td><td>Nearest neighbour from the dock, then 2-opt until no segment reversal helps. Deterministic, so Node and browser agree to the metre.</td></tr>
+  <tr><td><code>scoreLayout(wh, layout, trips, nOrders)</code></td><td>Sum of route lengths → <code>dist</code>, <code>walkSec = dist / 1.2</code>, <code>pickSec = lines × 10</code>, per-order averages, and <code>visits[slot]</code> (rack colours). A full month takes milliseconds.</td></tr>
+  <tr><td><code>edgeTraffic(wh, layout, trips)</code></td><td>Expands each route into graph edges and counts passes per edge (floor heatmap).</td></tr>
+  <tr class="hi"><td><code>buildSmartTrips(wh, orders, layout, 4, 12)</code> <span class="pill new">NEW</span></td><td>Layout-aware batching, below.</td></tr>
+</table>
+
+<h2>Smart batching</h2>
+<p>Plain batching groups orders 1-2-3-4, 5-6-7-8, … regardless of where their products are. Smart batching asks, as a warehouse management system would: <i>which waiting orders send the cart to the same aisles?</i></p>
+<pre><span class="c">// per order: the set of aisles its products are in (depends on the layout!)</span>
+<span class="k">while</span> orders remain:
+  seed = oldest unbatched order;  cover = aisles(seed)
+  <span class="k">repeat</span> 3 times:
+    look at the next 12 unbatched orders after the seed
+    pick j with the highest Jaccard overlap  |cover ∩ aisles(j)| / |cover ∪ aisles(j)|
+    add j to the trip;  cover = cover ∪ aisles(j)
+  emit trip</pre>
+<ul>
+  <li><b>Window of 12</b> keeps it realistic: only orders that arrived close in time can share a cart, and the oldest order is never skipped.</li>
+  <li>Because the aisle sets depend on where products are shelved, smart trips are <b>recomputed per layout</b>. In main.js they're cached under <code>smart|&lt;layout&gt;</code>, and the player's entry is dropped on every swap.</li>
+  <li>Still 574 trips for 2,293 orders, same as plain batches. Only the grouping changes.</li>
+</ul>
+<table>
+  <tr><th>Layout</th><th class="num">1 order/trip (km)</th><th class="num">Batch ×4 (km)</th><th class="num">Smart (km)</th><th class="num">Smart vs Batch</th><th class="num">Smart vs Original, 1/trip</th></tr>
+  <tr><td>Original</td><td class="num">218.1</td><td class="num">88.2</td><td class="num">77.6</td><td class="num">−12.1%</td><td class="num">−64.4%</td></tr>
+  <tr><td>ABC</td><td class="num">212.7</td><td class="num">88.0</td><td class="num">77.4</td><td class="num">−12.1%</td><td class="num">−64.5%</td></tr>
+  <tr><td>Affinity</td><td class="num">193.4</td><td class="num">84.4</td><td class="num">71.7</td><td class="num">−15.0%</td><td class="num">−67.1%</td></tr>
+  <tr class="hi"><td><b>Optimized</b></td><td class="num">183.7</td><td class="num">82.7</td><td class="num">70.1</td><td class="num">−15.3%</td><td class="num"><b>−67.9%</b></td></tr>
+</table>
+<div class="box why"><span class="lbl">The insight</span>Smart batching gains more on the clustered layouts (−15% on Affinity/Optimized vs −12% on Original/ABC). When co-ordered products already share aisles, orders overlap more cleanly, so <b>slotting and batching stack</b> instead of competing. With plain batches slotting barely mattered (Optimized only −6.3%); with smart batches it matters again (77.6 → 70.1 km, −9.7%).</div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="chap">
+<h1><span class="n">06</span>Layer 3 · Layouts and the optimizer<span class="tag">layouts.js <span class="pill same">SAME</span> · anneal.js <span class="pill new">NEW</span> · optimize.mjs <span class="pill chg">CHANGED</span></span></h1>
+<h2>The layout ladder</h2>
+<table>
+  <tr><th>Layout</th><th>How it's built</th><th class="num">km / month</th><th class="num">saved</th></tr>
+  <tr><td>Original</td><td>products in natural stock-code order, slot by slot, aisle by aisle</td><td class="num">218.1</td><td class="num">–</td></tr>
+  <tr><td>ABC</td><td>slots sorted by <code>dockDist</code>, products by picks; fastest product → nearest slot</td><td class="num">212.7</td><td class="num">2.5%</td></tr>
+  <tr><td>Affinity</td><td>fill slots nearest-first; choose product maximising <code>picks + w·Σ co[p][q]</code> over products already in that aisle; <code>w</code> chosen by replay (w = 8)</td><td class="num">193.4</td><td class="num">11.3%</td></tr>
+  <tr><td>Optimized</td><td>simulated annealing starting from Affinity, 80,000 swaps</td><td class="num">183.7</td><td class="num">15.8%</td></tr>
+  <tr><td>You</td><td>the player's layout (localStorage <code>wt-player</code>), editable by hand or by the live optimizer</td><td class="num">live</td><td class="num"></td></tr>
+</table>
+
+<h2><code>anneal(wh, nProducts, start, trips, opts)</code></h2>
+<pre><span class="k">repeat</span> iters times:
+  s1, s2 = two random slots;  T = T0 · (T1/T0)^(it/iters)       <span class="c">// geometric cooling</span>
+  <span class="k">if</span> same pick node: skip                                      <span class="c">// swap changes nothing</span>
+  swap products;  re-route ONLY trips containing either product <span class="c">// delta evaluation</span>
+  accept <span class="k">if</span> Δ ≤ 0 or rand() &lt; e^(−Δ/T), <span class="k">else</span> undo                <span class="c">// Metropolis</span>
+  keep best layout ever seen
+  every `every` iterations: onProgress({ it, T, current, best, layout, ... })</pre>
+<p>What the refactor changed: the loop is identical to the one that used to live inside <code>optimize.mjs</code>. It now takes <code>wh</code> and <code>nProducts</code> as arguments (no module globals), reports progress through a callback instead of <code>console.log</code>, and returns <code>startDist</code> and <code>best</code> too. The seeded PRNG (<code>mulberry32</code>) is exported, so with the same seed the offline result is reproducible.</p>
+
+<div class="grid2">
+<div>
+<h3>Offline · optimize.mjs</h3>
+<table>
+  <tr><td>start</td><td>Affinity</td></tr>
+  <tr><td>iterations</td><td>80,000 (CLI arg)</td></tr>
+  <tr><td>T0 → T1</td><td>40 → 0.2 m</td></tr>
+  <tr><td>seed</td><td>42 (fixed)</td></tr>
+  <tr><td>result</td><td>462 accepted, 44 s</td></tr>
+  <tr><td>also</td><td>hold-out run (train &lt; 22 Nov, test last week)</td></tr>
+</table>
+</div>
+<div>
+<h3>Live · optWorker.js <span class="pill new">NEW</span></h3>
+<table>
+  <tr><td>start</td><td>the player's current layout</td></tr>
+  <tr><td>iterations</td><td>24,000 (~15 s)</td></tr>
+  <tr><td>T0 → T1</td><td>30 → 0.2 m</td></tr>
+  <tr><td>seed</td><td>random per run</td></tr>
+  <tr><td>progress</td><td>every 400 iterations (60 updates)</td></tr>
+  <tr><td>objective</td><td>1 order / trip, always</td></tr>
+</table>
+</div>
+</div>
+
+<h2>Live optimizer: message flow</h2>
+<pre>main.js                                   optWorker.js (separate thread)
+  click "Optimize live"
+  ── postMessage({ orders, nProducts, start: player layout, iters: 24000, seed }) ──▶
+                                            buildWarehouse(); buildTrips(orders, 1)
+                                            anneal(..., { T0: 30, every: 400 })
+  ◀── { type: 'progress', best, layout, it, sec } ─────── every 400 iterations
+  if best improved by &gt; 1 m: applyOptLayout()  <span class="c">// recolour racks, rescore, redraw chart</span>
+  ◀── { type: 'done', layout, best, startDist, accepted, sec } ──
+  toast "X → Y km (−Z%)";  worker.terminate()</pre>
+<ul>
+  <li>The worker rebuilds the graph and trips itself: they are cheap, and only plain data crosses the thread boundary.</li>
+  <li><b>While it runs</b>, manual swaps and Undo are refused with a toast. "Stop" terminates the worker and keeps the best layout seen so far. Loading another layout into "You" also stops it.</li>
+  <li>The replay snapshots <code>trips</code> and <code>layout</code> when it starts, so the optimizer rewriting the player layout mid-replay can't desync the animation.</li>
+  <li>The objective is always one order per trip, even when Batch or Smart is selected, so its result is comparable to the leaderboard and the offline optimizer.</li>
+</ul>
+<div class="box warn"><span class="lbl">Reproducing layouts.json</span><code>optimize.mjs</code> defaults to <b>60,000</b> iterations, but the shipped <code>layouts.json</code> was built with <b>80,000</b> (its <code>meta.saIterations</code> says so). Run <code>node scripts/optimize.mjs 80000</code> to reproduce 183.7 km exactly.</div>
+</section>
+
+<!-- ============================================================ 7 -->
+<section class="chap pb">
+<h1><span class="n">07</span>Layer 4 · Team of pickers<span class="tag">web/src/sim/multi.js · scripts/congestion.mjs <span class="pill new">NEW</span></span></h1>
+<p>Everything before this layer assumes one picker, so walking distance is the only cost. With several pickers on the same floor they get in each other's way. This layer measures how much.</p>
+
+<h2>The model in plain words</h2>
+<ol>
+  <li><b>Backlog.</b> All trips of the month (in the current trip mode) wait in one FIFO queue. Every picker starts at the dock at t = 0; whoever is free takes the next trip.</li>
+  <li><b>Walking.</b> The picker follows the trip's route node by node on the graph at 1.2 m/s and dwells at pick nodes for lines × 10 s, so a single picker's numbers equal the single-picker replay.</li>
+  <li><b>Aisle capacity.</b> A picking aisle (its 10 bay nodes) holds at most <code>cap</code> pickers: 1 = narrow (a cart blocks it), 2 = wide (two can pass). Cross-aisles and the dock are unlimited.</li>
+  <li><b>Blocking.</b> A picker about to step into a full aisle waits at the entrance (front or back end node) until someone leaves. Waiting time is counted, both per picker and per aisle.</li>
+  <li><b>No deadlock.</b> Aisles only connect through cross-aisle nodes, so a picker always leaves one aisle before it can request the next and never holds one while waiting for another.</li>
+  <li><b>Time</b> advances in fixed 0.5 s steps. No randomness, so the browser animation and <code>congestion.mjs</code> produce identical numbers.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 680 218" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f2226"/></marker></defs>
+  <style>.st{fill:#fbf8f1;stroke:#1f2226;stroke-width:1.2}.sw{fill:#fbeee9;stroke:#e0442a;stroke-width:1.5}.t{font-size:12px;font-weight:600;fill:#1f2226}.s{font-size:9.5px;fill:#3b3f45}.e{font-size:9px;fill:#2340b8;font-family:'Cascadia Mono',Consolas,monospace}.l{stroke:#1f2226;stroke-width:1.2;fill:none;marker-end:url(#a2)}</style>
+  <rect x="10" y="70" width="104" height="46" class="st"/><text x="22" y="90" class="t">at dock</text><text x="22" y="105" class="s">take next trip</text>
+  <rect x="170" y="70" width="104" height="46" class="st"/><text x="182" y="90" class="t">walking</text><text x="182" y="105" class="s">along route edges</text>
+  <rect x="330" y="10" width="124" height="46" class="sw"/><text x="342" y="30" class="t">waiting</text><text x="342" y="45" class="s">next aisle is full</text>
+  <rect x="330" y="130" width="124" height="46" class="st"/><text x="342" y="150" class="t">picking</text><text x="342" y="165" class="s">dwell lines × 10 s</text>
+  <rect x="520" y="70" width="140" height="46" class="st"/><text x="532" y="90" class="t">back at dock</text><text x="532" y="105" class="s">trip done → take next</text>
+  <path d="M114 93 H168" class="l"/><text x="118" y="86" class="e">cart_out</text>
+  <path d="M250 70 C270 35 300 33 328 33" class="l"/><text x="262" y="30" class="e">blocked</text>
+  <path d="M330 48 C300 60 280 64 262 70" class="l"/><text x="300" y="72" class="e">enter</text>
+  <path d="M250 116 C270 150 300 153 328 153" class="l"/>
+  <path d="M330 140 C300 128 282 122 262 116" class="l"/>
+  <path d="M274 93 H518" class="l"/><text x="455" y="86" class="e">cart_in</text>
+  <path d="M590 116 V198 H62 V119" class="l"/><text x="200" y="213" class="s">backlog empty → idle (finished when every picker is idle)</text>
+</svg>
+<figcaption>Fig. 2 · Life of one picker in <code>MultiSim.move()</code>. Blue labels are the events pushed to <code>sim.events</code>; the app turns them into RFID / UWB IoT events.</figcaption>
+</figure>
+
+<h2>Code walk-through</h2>
+<table>
+  <tr><th style="width:30%">Piece</th><th>Role</th></tr>
+  <tr><td><code>planTrips(wh, layout, trips)</code></td><td>Routes every trip once and expands it into a node-by-node list (<code>nodes</code>) with a <code>dwell</code> per node. Dwell = distinct products at that node × 10 s, scaled by lines/products so the total matches <code>scoreLayout</code>. Takes ~7 ms for the month.</td></tr>
+  <tr><td><code>new MultiSim(wh, plans, { pickers, cap, step })</code></td><td>State: queue head <code>next</code>, sim time <code>t</code>, per-aisle occupancy <code>inAisle[]</code>, per-aisle wait totals, and one record per picker (<code>plan, i, seg, dwell, aisle, waiting, waited, x, z, heading, idle</code>).</td></tr>
+  <tr><td><code>aisleOf(node)</code></td><td><code>node % 12</code> is 0 (front end) or 11 (back end) → cross-aisle (−1); otherwise <code>floor(node / 12)</code>. Only bay nodes count as "in the aisle".</td></tr>
+  <tr><td><code>advance(sec)</code> / <code>move(p, h)</code></td><td>Steps every picker by ≤ 0.5 s. At the start of each edge it applies the entry/exit rule; it spends the step on dwell, walking or waiting; <code>place()</code> interpolates x/z/heading for the 3D view.</td></tr>
+  <tr><td><code>stats()</code></td><td><code>hours</code> = time until the last picker finishes; <code>ordersPerHour</code>; <code>km</code>; <code>waitShare</code> = waiting picker-seconds ÷ busy picker-seconds; <code>aisleWait[]</code>.</td></tr>
+  <tr><td><code>runTeam(wh, plans, opts)</code></td><td>Whole month at once (advance in 60 s chunks). ~40–50 ms per run.</td></tr>
+</table>
+
+<div class="keep"><h2>Results · Optimized layout (congestion.json)</h2>
+<table>
+  <tr><th class="num">Pickers</th><th class="num">Narrow: orders/h</th><th class="num">waiting</th><th class="num">month in</th><th class="num">Wide: orders/h</th><th class="num">waiting</th><th class="num">month in</th><th class="num">Perfect scaling</th></tr>
+  <tr><td class="num">1</td><td class="num">26.2</td><td class="num">0%</td><td class="num">87.6 h</td><td class="num">26.2</td><td class="num">0%</td><td class="num">87.6 h</td><td class="num">26.2</td></tr>
+  <tr><td class="num">2</td><td class="num">48.0</td><td class="num">8.2%</td><td class="num">47.7 h</td><td class="num">52.4</td><td class="num">0%</td><td class="num">43.8 h</td><td class="num">52.4</td></tr>
+  <tr><td class="num">3</td><td class="num">66.2</td><td class="num">15.7%</td><td class="num">34.6 h</td><td class="num">77.8</td><td class="num">0.9%</td><td class="num">29.5 h</td><td class="num">78.6</td></tr>
+  <tr class="hi"><td class="num">4</td><td class="num">80.8</td><td class="num">22.8%</td><td class="num">28.4 h</td><td class="num">102.3</td><td class="num">2.3%</td><td class="num">22.4 h</td><td class="num">104.8</td></tr>
+  <tr><td class="num">5</td><td class="num">92.8</td><td class="num">29.1%</td><td class="num">24.7 h</td><td class="num">125.3</td><td class="num">4.2%</td><td class="num">18.3 h</td><td class="num">131.0</td></tr>
+  <tr><td class="num">6</td><td class="num">101.4</td><td class="num">35.3%</td><td class="num">22.6 h</td><td class="num">146.0</td><td class="num">6.9%</td><td class="num">15.7 h</td><td class="num">157.2</td></tr>
+</table></div>
+<div class="grid2">
+<div class="box why"><span class="lbl">Finding 1 · aisle width ≈ slotting</span>In narrow aisles 4 pickers lose 23% of their capacity to queueing; in wide aisles only 2%. With a team, aisle width and batching matter as much as where products sit.</div>
+<div class="box why"><span class="lbl">Finding 2 · concentration cuts both ways</span>Optimized beats Original by <b>+9.2%</b> orders/h with one picker but only <b>+5.2%</b> with six (narrow). Putting co-ordered products together also puts the pickers together.</div>
+</div>
+<p class="small">Sanity check built into the model: at N = 1 it reproduces the single-picker replay exactly (Original: 2,293 orders × 150 s = 95.6 h).</p>
+<div class="box warn"><span class="lbl">Modelling simplifications to know about</span>
+<ul style="margin:0">
+  <li>Capacity is per whole aisle, not per segment; two pickers at opposite ends of a wide aisle are treated the same as two side by side.</li>
+  <li>Cross-aisles and the dock never congest; there's no turnaround or handover time at the dock.</li>
+  <li>The backlog model (all orders waiting at t = 0) measures <i>capacity</i>, not service time against real arrival times.</li>
+  <li>When several pickers wait for the same aisle, the lower-numbered picker gets in first (pickers are stepped in id order); it is not a first-come queue.</li>
+</ul></div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="chap">
+<h1><span class="n">08</span>Layer 5 · 3D scene<span class="tag">web/src/scene/scene.js <span class="pill chg">CHANGED</span></span></h1>
+<p><code>createScene(el, wh)</code> builds everything from the same <code>wh</code> object as the simulation and returns a small API. main.js never touches Three.js objects directly; it only calls these methods.</p>
+<table>
+  <tr><th style="width:24%">Part</th><th>How it's built</th></tr>
+  <tr><td>Renderer / camera</td><td>WebGLRenderer, pixel ratio capped at 1.75, perspective camera, OrbitControls with damping (can't go under the floor), fog in the paper colour.</td></tr>
+  <tr class="hi"><td>Floor <span class="pill new">NEW</span></td><td>One unlit quad textured with <code>tex/floor.jpg</code>, a top-down Cycles render of the same layout with contact shadows, AO, aisle numbers, safety lines and dock hatching baked in. Replaces ~20 floor meshes and the realtime shadow map.</td></tr>
+  <tr><td>Racks</td><td><code>InstancedMesh</code>es: 220 uprights, 60 beams, 30 decks, 300 cartons (100 slots × 3 levels). Carton instance id = <code>slot × 3 + level</code>, so a raycast hit gives the slot directly.</td></tr>
+  <tr><td>Rack colour</td><td>Per-instance colour from <code>visits</code> on a sqrt min-max scale shared by all layouts (sand → sage → teal → amber → red), so a product keeps its colour when moved. Same ramp in the deck, posters and Blender.</td></tr>
+  <tr class="hi"><td>Render on demand <span class="pill new">NEW</span></td><td>A <code>dirty</code> flag; every setter calls <code>invalidate()</code>. A frame is drawn only if something is animating (replay, flashes, markers, UWB ring, lit lamps), the camera moved, or the flag is set. Idle = 0 draw calls.</td></tr>
+  <tr><td>Picker</td><td>Capsule body, head, helmet, cart, totes, a canvas blob shadow and a ring. Bobs while walking; faces <code>atan2(dx, dz)</code>.</td></tr>
+  <tr class="hi"><td>Team <span class="pill new">NEW</span></td><td>Picker 0 plus five clones that share its geometry, each with its own colour, ring and a numbered sprite tag. <code>setTeam(list)</code> places them; waiting pickers get a 1.7× pulsing ring and stand side by side at the aisle entrance.</td></tr>
+  <tr class="hi"><td>IoT props <span class="pill new">NEW</span></td><td>100 green pick-to-light lamps + floor glows (shared geometry/material) toggled by <code>setLights(ids)</code>; an expanding UWB ring around the picker (<code>setUwb</code>).</td></tr>
+  <tr><td>Markers</td><td>Dashed animated route line, blue cones over pending picks, plum diamonds over co-purchase partners, wireframe frames for hover / selection / swap target.</td></tr>
+  <tr><td>Traffic heatmap</td><td>One translucent strip per graph edge (64), colour/opacity from <code>edgeTraffic</code>, normalised to Original.</td></tr>
+  <tr><td>Interaction</td><td>Hover raycasts throttled to once per frame; a click is a pointer-up within 6 px of pointer-down (so orbit drags don't click). Handles WebGL context loss.</td></tr>
+</table>
+<h3>Scene API used by main.js</h3>
+<pre>onFrame(cb)  onSlotHover(cb)  onSlotClick(cb)  invalidate()
+setSlotColors(colors)  flashSlot(id)  setSelection(id)  setSwapTarget(id)  setHover(id)
+setPartners(ids)  setTraffic(values, colorFn)  setRoute(points)  setPending(ids)
+setLights(ids)  setUwb(on)  setTeam(list | null)  setPicker(x, z, heading, moving)  resetView()</pre>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="chap">
+<h1><span class="n">09</span>Layer 6 · App controller and UI<span class="tag">web/src/main.js · index.html · style.css <span class="pill chg">CHANGED</span></span></h1>
+<p><code>main()</code> loads the four JSON files, builds <code>wh</code>, the scene and the co-occurrence matrix, scores all five layouts, then wires up the UI. It's one long closure; the sections below follow its comment headers.</p>
+
+<h2>State and caches</h2>
+<pre>S = { view, mode: 'single'|'batch'|'smart', traffic, iot, sel, history, pickers: 1..6, cap: 1|2,
+      layouts: { original, abc, affinity, optimized, player } }</pre>
+<table>
+  <tr><th>Cache</th><th>Key</th><th>Holds</th><th>Invalidated when</th></tr>
+  <tr><td><code>tripCache</code></td><td><code>single</code> · <code>batch</code> · <code>smart|layout</code></td><td>trip lists</td><td>player layout changes (smart only)</td></tr>
+  <tr><td><code>scores</code></td><td>layout</td><td><code>scoreLayout</code> results</td><td>mode change (all), swap (player)</td></tr>
+  <tr><td><code>trafficCache</code></td><td><code>layout|mode</code></td><td>edge pass counts</td><td>player layout changes</td></tr>
+  <tr><td><code>planCache</code> <span class="pill new">NEW</span></td><td><code>layout|mode</code></td><td><code>planTrips</code> output</td><td><code>forgetTeam('player')</code></td></tr>
+  <tr><td><code>teamCache</code> <span class="pill new">NEW</span></td><td><code>layout|mode|cap|n</code></td><td><code>runTeam</code> stats</td><td><code>forgetTeam('player')</code></td></tr>
+</table>
+<p class="small">Opening the team panel for a new mode/cap computes up to ~10 <code>runTeam</code> calls (5 layouts at the chosen size + 6 sizes for the chart) on the main thread, roughly half a second the first time; after that it's cached. <code>scheduleTeam()</code> debounces this by 30 ms.</p>
+
+<h2>Panels (left side)</h2>
+<table>
+  <tr><th style="width:22%">Panel</th><th>Contents</th></tr>
+  <tr><td>01 Layout</td><td>five layout buttons, description, "Copy this layout into You and edit"</td></tr>
+  <tr><td>02 Month replay</td><td>trip mode (1 order / Batch ×4 / Smart) and the scoreboard: km/month, m/order, time/order, saved vs Original, badges for "You"</td></tr>
+  <tr><td>03 Your layout</td><td>swap info, Undo, Reset, <b>Live optimizer</b> box with chart, name + leaderboard</td></tr>
+  <tr><td>04 Team of pickers <span class="pill new">NEW</span></td><td>Narrow/Wide, pickers 1–6, per-layout table, orders/h-vs-pickers chart against perfect scaling</td></tr>
+  <tr><td>05 About</td><td>cleaning counts, floor parameters, hold-out results, optimizer stats, shortcuts</td></tr>
+</table>
+<p>Right side: the 3D stage with the HUD (play, step, speed 1–300×, counters), the order/team card, the toolbar (traffic, IoT, reset view, legend), the IoT panel (draggable by its header, position remembered) and a toast.</p>
+
+<h2>Replay: two engines behind one ▶ button</h2>
+<div class="grid2">
+<div>
+<h3>One picker (<code>S.pickers === 1</code>)</h3>
+<p>A small state machine in <code>step(dt)</code>: <code>startTrip</code> routes the next trip and expands it to points → walk segments at 1.2 m/s → <code>arrive</code> at stops (tick the order card, flash cartons, dwell) → <code>finishTrip</code> adds this trip's distance <i>and the same trip's distance on Original</i> for the "Same orders on Original" counter. ⏭ finishes the current trip instantly.</p>
+</div>
+<div>
+<h3>Team (<code>S.pickers &gt; 1</code>) <span class="pill new">NEW</span></h3>
+<p>▶ creates <code>R.team = new MultiSim(...)</code> from the snapshotted layout and trips; each frame calls <code>stepTeam(dt × speed)</code>, which advances the sim, converts its events to IoT events and calls <code>scene.setTeam</code>. The card shows each picker's status and minutes waited; the 4th counter becomes "Team · waiting at aisles". ⏭ runs until the next trip returns.</p>
+</div>
+</div>
+<p>Changing layout, mode, picker count or aisle width calls <code>resetReplay()</code>, so counters always belong to one configuration.</p>
+
+<h2>Inputs</h2>
+<table>
+  <tr><th>Keyboard</th><th>URL parameter</th><th>localStorage key</th></tr>
+  <tr><td><code>Space</code> play/pause · <code>1</code>–<code>5</code> layouts · <code>H</code> traffic · <code>B</code> cycle trip mode · <code>I</code> IoT · <code>O</code> optimizer · <code>P</code> cycle pickers · <code>Esc</code> deselect</td>
+      <td><code>view=</code> · <code>batch=1|smart</code> · <code>traffic=1</code> · <code>iot=1</code> · <code>pickers=1..6</code> · <code>cap=2</code> · <code>speed=0..100</code> · <code>play=1</code> · <code>opt=1</code> · <code>select=slot</code></td>
+      <td><code>wt-player</code> (your layout) · <code>wt-leaderboard</code> (≤ 50 entries) · <code>wt-iot-pos</code> (panel position)</td></tr>
+</table>
+<p class="small">Everything read from localStorage or the URL is validated (layouts must be a permutation of 0–99, numbers must be finite, enums must match), so corrupt data can't break the app.</p>
+</section>
+
+<!-- ============================================================ 10 -->
+<section class="chap">
+<h1><span class="n">10</span>Layer 7 · IoT sensor mode<span class="tag">main.js §IoT · scene.js <span class="pill new">NEW</span></span></h1>
+<p>A digital twin is normally fed by sensors. This mode shows exactly which events real hardware would stream for the replay on screen, in a format a backend could ingest. <b>The events are generated by the simulation, not read from devices.</b> This is the electronics angle of the project, made concrete.</p>
+<div class="grid2">
+<div>
+<table>
+  <tr><th>Device</th><th>Real hardware</th><th>Event</th></tr>
+  <tr><td><span style="color:var(--plum)">RFID</span> DOCK-GATE</td><td>UHF RFID portal at the dock reading the cart tag</td><td><code>cart_out</code>, <code>cart_in</code></td></tr>
+  <tr><td><span style="color:var(--cobalt)">UWB</span> UWB-TAG C-0n</td><td>ultra-wideband tag on each cart, anchors on the ceiling (~10–30 cm accuracy)</td><td><code>position</code>, <code>aisle_blocked</code>, <code>aisle_enter</code></td></tr>
+  <tr><td><span style="color:var(--moss)">PTL</span> PTL-&lt;slot&gt;</td><td>pick-to-light module on each shelf face</td><td><code>light_on</code>, <code>light_off</code></td></tr>
+  <tr><td><span style="color:var(--signal)">SCAN</span> SCANNER-01</td><td>handheld / ring barcode scanner</td><td><code>pick_confirmed</code></td></tr>
+</table>
+</div>
+<div>
+<figure style="margin-top:0"><img src="../build/img/app_iot.jpg" alt="IoT mode"><figcaption>IoT mode: green pick-to-light lamps on the racks, UWB ring around the cart, live event tape.</figcaption></figure>
+</div>
+</div>
+<h2>Event schema (one JSON object per line in the download; values below are from one real trip)</h2>
+<pre>{"t_sim_s":80.0,"type":"rfid","device":"DOCK-GATE","event":"cart_out","cart":"C-01","orders":["529996"]}
+{"t_sim_s":80.0,"type":"ptl","device":"PTL-A2-R06","event":"light_on","slot":"A2-R06","sku":"22666","qty":1}
+{"t_sim_s":82.5,"type":"uwb","device":"UWB-TAG C-01","event":"position","cart":"C-01","x":12.5,"z":-1.5}
+{"t_sim_s":97.0,"type":"scan","device":"SCANNER-01","event":"pick_confirmed","slot":"A2-R06","sku":"22666","qty":1}
+{"t_sim_s":97.0,"type":"ptl","device":"PTL-A2-R06","event":"light_off","slot":"A2-R06"}
+{"t_sim_s":124.2,"type":"rfid","device":"DOCK-GATE","event":"cart_in","cart":"C-01","trip_m":41.0,"lines":1}
+<span class="c">// team mode adds, per cart C-01..C-06:</span>
+{"type":"uwb","device":"UWB-TAG C-03","event":"aisle_blocked","cart":"C-03","aisle":4}</pre>
+<ul>
+  <li>Events are recorded only while IoT mode is on. The log keeps the last 40,000–50,000 events; the on-screen tape shows the latest 14 and refreshes every 0.1 s.</li>
+  <li>UWB <code>position</code> is emitted at every graph node the cart passes (a real tag would report at a fixed rate, e.g. 1–10 Hz).</li>
+  <li>In team mode only RFID and UWB block/enter events are emitted. There are no per-pick PTL/scan events for multiple pickers yet.</li>
+</ul>
+</section>
+
+<!-- ============================================================ 11 -->
+<section class="chap">
+<h1><span class="n">11</span>Layer 8 · Renders, deck and posters<span class="tag">build/ <span class="pill new">NEW</span></span></h1>
+<p>The presentation material is generated from the same data and code as the app, never drawn by hand, so a change in the model can be pushed through to every slide and poster by re-running the chain.</p>
+<pre>web/public/data/*.json
+   │  node build/blender/dump_scene.mjs        geometry, per-layout visits + traffic, sample route
+   ▼
+build/blender/scene.json
+   │  Blender 5: exec(scene.py); build(); bake_floor(); render_all()
+   ├──▶ build/blender/floor_raw.png ──python post.py──▶ web/public/tex/floor.jpg   <span class="c">(used by the app)</span>
+   └──▶ build/blender/out/*.png  (axonometric hero per layout, close-up, route renders)
+   │  python build/prep_assets.py              renders + app screenshots → build/img/*.jpg,
+   ▼                                           plan_*.png drawn from data, route_stats.json
+build/img/ + route_stats.json + congestion.json (node web/scripts/congestion.mjs)
+   ├── python build/build_deck.py              → ElectroSolve_2026_Warehouse_Digital_Twin.pptx (11 slides, Morph)
+   ├── msedge --print-to-pdf build/poster.html → ElectroSolve_2026_A3_Poster.pdf
+   └── python build/build_official_poster.py   → ElectroSolve_2026_Official_Poster_GitHappens.pptx/.pdf</pre>
+<div class="grid2">
+<div>
+<figure><img src="../build/img/route_original.jpg" alt=""><figcaption>Original: invoice 532964 (9 lines), 143 m through 5 aisles.</figcaption></figure>
+</div>
+<div>
+<figure><img src="../build/img/route_optimized.jpg" alt=""><figcaption>Optimized: the same order, 62 m through 2 aisles.</figcaption></figure>
+</div>
+</div>
+<ul>
+  <li><b>Sample route</b>: <code>dump_scene.mjs</code> picks the single-order trip of 7–9 lines with the biggest Original → Optimized gain. It's a showcase, not an average (the average is 95.1 → 80.1 m per order). Say so if asked.</li>
+  <li><b>Floor bake</b>: racks and cartons cast shadows onto the floor but are invisible to the bake camera; <code>post.py</code> lifts the fully occluded area under racks to a soft grey and saves a 159 KB JPEG.</li>
+  <li><b>Deck</b>: python-pptx; shapes named <code>!!…</code> repeat on every slide so PowerPoint's Morph glides them. It reads <code>congestion.json</code> and <code>route_stats.json</code> for its numbers.</li>
+  <li><b>Official poster</b>: fills the SENSE template (red frame, VIT logo, Calibri sizes); tables, chart and pipeline figure are native, editable PowerPoint objects.</li>
+  <li><b>One palette everywhere</b>: the same tokens in style.css, scene.js (<code>PAL</code>), scene.py, prep_assets.py and the deck.</li>
+</ul>
+</section>
+
+<!-- ============================================================ 12 -->
+<section class="chap">
+<h1><span class="n">12</span>Testing</h1>
+<p>Both tests drive the real built app in headless Edge through <code>puppeteer-core</code> (install it in any scratch folder; it isn't a project dependency) against <code>npm run build && npm run preview</code> on port 4173. They fail on any page error or console error.</p>
+<table>
+  <tr><th style="width:22%">Test</th><th>What it does</th></tr>
+  <tr><td><code>build/test/stress.mjs</code></td><td>Counts WebGL draw calls (idle must be 0); plays at 300× while flipping layouts, modes and overlays; 40 random rack clicks in "You"; runs the optimizer during playback and checks swaps are refused; start/stop/reset the optimizer; skips the whole month in all three trip modes and restarts; injects junk into the leaderboard; loads hostile URL params.</td></tr>
+  <tr><td><code>build/test/team.mjs</code></td><td>Opens <code>?view=optimized&amp;pickers=4&amp;iot=1</code>, waits for the team table, plays, cycles pickers / modes / layouts / aisle width while playing, then skips trip by trip to the end of the month. Also takes the screenshots used in the deck.</td></tr>
+</table>
+<p>Reported result (README): 0 JS errors, and replay totals match the scoreboard to the metre (218.1 / 88.2 / 77.6 km). The draggable IoT panel was checked separately with a small puppeteer script (drag, clamp to the view, persistence across reload, button not hijacked, double-click reset).</p>
+<div class="box warn"><span class="lbl">Portability</span><code>team.mjs</code> writes screenshots to hard-coded <code>C:/Users/ASUS/…</code> paths, <code>render.ps1</code> defaults to the same machine, and both tests assume Edge under <code>Program Files (x86)</code>. Change the paths before running them on another laptop.</div>
+<p>There are no unit tests for the sim core. The cheapest high-value additions would be: (1) <code>runTeam</code> with 1 picker equals <code>scoreLayout</code> time; (2) <code>buildSmartTrips</code> covers every order exactly once; (3) <code>anneal</code> with a fixed seed reproduces a known distance.</p>
+</section>
+
+<!-- ============================================================ 13 -->
+<section class="chap">
+<h1><span class="n">13</span>All the numbers</h1>
+<h2>Single picker, full month (Nov 2010, 2,293 orders)</h2>
+<table>
+  <tr><th>Layout</th><th class="num">1 order/trip km</th><th class="num">m/order</th><th class="num">time/order</th><th class="num">saved</th><th class="num">Batch ×4 km</th><th class="num">saved</th><th class="num">Smart km</th></tr>
+  <tr><td>Original</td><td class="num">218.1</td><td class="num">95.1</td><td class="num">2:30</td><td class="num">–</td><td class="num">88.2</td><td class="num">–</td><td class="num">77.6</td></tr>
+  <tr><td>ABC</td><td class="num">212.7</td><td class="num">92.8</td><td class="num">2:28</td><td class="num">2.5%</td><td class="num">88.0</td><td class="num">0.2%</td><td class="num">77.4</td></tr>
+  <tr><td>Affinity</td><td class="num">193.4</td><td class="num">84.3</td><td class="num">2:21</td><td class="num">11.3%</td><td class="num">84.4</td><td class="num">4.3%</td><td class="num">71.7</td></tr>
+  <tr class="hi"><td>Optimized</td><td class="num">183.7</td><td class="num">80.1</td><td class="num">2:18</td><td class="num">15.8%</td><td class="num">82.7</td><td class="num">6.3%</td><td class="num">70.1</td></tr>
+</table>
+<div class="grid2">
+<div>
+<h2>Hold-out (built on 1,527 orders before 22 Nov, tested on 766 after)</h2>
+<table>
+  <tr><th>Layout</th><th class="num">km</th><th class="num">saved</th></tr>
+  <tr><td>Original</td><td class="num">74.80</td><td class="num">–</td></tr>
+  <tr><td>ABC</td><td class="num">73.35</td><td class="num">1.9%</td></tr>
+  <tr><td>Affinity (w = 1)</td><td class="num">66.40</td><td class="num">11.2%</td></tr>
+  <tr><td>Optimized</td><td class="num">64.38</td><td class="num">13.9%</td></tr>
+</table>
+</div>
+<div>
+<h2>Optimizer and model facts</h2>
+<table>
+  <tr><td>Affinity weight (full month)</td><td class="num">w = 8</td></tr>
+  <tr><td>Offline SA</td><td class="num">80,000 it · 462 acc · 44 s</td></tr>
+  <tr><td>Live SA</td><td class="num">24,000 it · ~15 s</td></tr>
+  <tr><td>Per order time split</td><td class="num">~79 s walk + ~71 s pick</td></tr>
+  <tr><td>Optimized vs Original</td><td class="num">34.5 km ≈ 8.0 h walking / month</td></tr>
+  <tr><td>Graph</td><td class="num">61 nodes · 64 edges · 100 slots</td></tr>
+</table>
+</div>
+</div>
+<h2>Team of pickers, orders per hour (narrow aisles · wide aisles)</h2>
+<table>
+  <tr><th>Layout</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th></tr>
+  <tr><td>Original</td><td class="num">24.0</td><td class="num">44.8 · 48.0</td><td class="num">61.8 · 71.5</td><td class="num">75.3 · 94.2</td><td class="num">87.6 · 115.1</td><td class="num">96.4 · 135.2</td></tr>
+  <tr><td>ABC</td><td class="num">24.3</td><td class="num">44.8 · 48.6</td><td class="num">62.2 · 72.4</td><td class="num">76.2 · 95.2</td><td class="num">87.5 · 116.5</td><td class="num">95.8 · 136.3</td></tr>
+  <tr><td>Affinity</td><td class="num">25.5</td><td class="num">47.0 · 51.0</td><td class="num">64.4 · 75.9</td><td class="num">79.3 · 99.6</td><td class="num">90.2 · 122.0</td><td class="num">99.7 · 142.4</td></tr>
+  <tr class="hi"><td>Optimized</td><td class="num">26.2</td><td class="num">48.0 · 52.4</td><td class="num">66.2 · 77.8</td><td class="num">80.8 · 102.3</td><td class="num">92.8 · 125.3</td><td class="num">101.4 · 146.0</td></tr>
+</table>
+<p class="small">Waiting share in narrow aisles at 6 pickers: Original 33.0%, ABC 34.2%, Affinity 34.8%, Optimized 35.3%. The better the slotting, the more pickers crowd the same aisles.</p>
+<h2>Data</h2>
+<table>
+  <tr><td>Raw lines / invoices (Nov 2010)</td><td class="num">76,584 / 3,669</td><td>Clean lines / invoices / products</td><td class="num">74,757 / 2,719 / 3,018</td></tr>
+  <tr><td>Removed: cancelled · non-product · invalid</td><td class="num">1,192 · 282 · 353</td><td>Top-100 share of picks</td><td class="num">22.1%</td></tr>
+  <tr><td>Orders / lines replayed</td><td class="num">2,293 / 16,225</td><td>Lines per order</td><td class="num">mean 7.1, median 5</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ 14 -->
+<section class="chap pb">
+<h1><span class="n">14</span>Known issues and loose ends</h1>
+<table>
+  <tr><th style="width:4%">#</th><th style="width:30%">Issue</th><th>Detail and fix</th></tr>
+  <tr><td>1</td><td><b>Team table can show "5:60 h"</b></td><td><code>hrs()</code> in main.js rounds the minutes separately from the hours. Fix: round the total minutes first, then split into hours and minutes.</td></tr>
+  <tr><td>2</td><td><b>Repo weight</b></td><td><code>web/node_modules</code> is committed (1,260 files), as are the 44 MB workbook, 93 MB of CSV cache, ~4.6 MB per Blender render and every pptx/pdf revision. A <code>.gitignore</code> for <code>node_modules/</code>, <code>preprocess/raw/cache/</code> and <code>build/blender/out/</code> would stop it growing. Removing them from history is a separate, riskier job.</td></tr>
+  <tr><td>3</td><td><b>Committed build</b></td><td><code>web/dist</code> is in git, so every source change needs <code>npm run build</code> before committing or the offline demo runs stale code.</td></tr>
+  <tr><td>4</td><td><b>Optimizer default iterations</b></td><td><code>optimize.mjs</code> defaults to 60,000; shipped data used 80,000. Make 80,000 the default or document it.</td></tr>
+  <tr><td>5</td><td><b>Hard-coded paths</b></td><td><code>build/test/team.mjs</code>, <code>build/render.ps1</code> point at <code>C:\Users\ASUS\…</code>.</td></tr>
+  <tr><td>6</td><td><b>"PS 4.2" in the deck</b></td><td>Removed from app, README and A3 poster; still in <code>build_deck.py</code> (slide footer, title badge) and in the old review-prep guide.</td></tr>
+  <tr><td>7</td><td><b>Team mode IoT is partial</b></td><td>Only RFID out/in and UWB blocked/enter; no pick-to-light or scan events per picker.</td></tr>
+  <tr><td>8</td><td><b>Main-thread team runs</b></td><td>~0.5 s the first time the team panel computes a new mode/cap combination. Could move to the worker if it ever feels laggy.</td></tr>
+  <tr><td>9</td><td><b>Sample route is cherry-picked</b></td><td>The 143 → 62 m example is the biggest gain among 7–9-line orders. Fine for illustration, but pair it with the 95.1 → 80.1 m average.</td></tr>
+  <tr><td>10</td><td><b>review-prep.html is stale</b></td><td>Its scene description (shadow maps, blue racks), future-work list and demo script predate the new features. Either update it or treat this guide as the replacement.</td></tr>
+</table>
+</section>
+
+<!-- ============================================================ 15 -->
+<section class="chap">
+<h1><span class="n">15</span>Questions on the new features</h1>
+<dl class="qa">
+  <dt>Is the IoT stream real?</dt>
+  <dd>No. It's what the hardware <i>would</i> send for this replay, in a JSON Lines format a backend could consume. The point is that the twin's state (cart positions, which slot is being picked, gate crossings) maps one-to-one onto standard warehouse devices. Swapping the simulated source for real readers is an integration job, not a redesign.</dd>
+  <dt>Why UWB and not GPS or BLE?</dt>
+  <dd>GPS doesn't work indoors. BLE beacons give 1–3 m accuracy, which can't separate neighbouring aisles 5 m apart reliably. UWB gives 10–30 cm, enough to know which aisle and roughly which bay a cart is at.</dd>
+  <dt>Smart batching looks ahead 12 orders. Isn't that cheating?</dt>
+  <dd>No. Those orders are already waiting (they arrived earlier in the queue). It never uses future orders beyond the window and always serves the oldest order first, which is how wave/cluster picking works in a WMS.</dd>
+  <dt>Why does the Optimized layout lose part of its advantage with more pickers?</dt>
+  <dd>It concentrates popular, co-ordered products into fewer aisles. Fewer aisles per order means less walking for one picker, but more pickers wanting the same aisle at the same time. With 6 pickers in narrow aisles its gain over Original falls from +9.2% to +5.2%. The fix is operational (wider aisles, or batching that spreads pickers), which the team panel lets you test.</dd>
+  <dt>How do you know the congestion model is right?</dt>
+  <dd>Three checks: it reproduces the single-picker result exactly at N = 1; it is deterministic; and the behaviour matches intuition (wide aisles nearly scale perfectly, narrow ones saturate). It's a capacity model, not a calibrated time study, and the simplifications are listed in chapter 7.</dd>
+  <dt>Can the live optimizer beat the offline one?</dt>
+  <dd>Occasionally, from a good starting layout, because it starts from wherever you are. But it runs 24,000 iterations against 80,000 offline, so on average it ends a little above 183.7 km. That keeps the game interesting.</dd>
+  <dt>Why bake the floor in Blender instead of realtime shadows?</dt>
+  <dd>The floor and racks never move, so their lighting can be computed once at film quality. The app then draws one textured quad and needs no shadow map, which matters on an average laptop with integrated graphics.</dd>
+</dl>
+</section>
+
+<!-- ============================================================ 16 -->
+<section class="chap">
+<h1><span class="n">16</span>Command cheat sheet and glossary</h1>
+<pre><span class="c"># run the app</span>
+cd web &amp;&amp; npm install &amp;&amp; npm run dev            <span class="c"># dev server, http://localhost:5173</span>
+npm run build &amp;&amp; npm run preview                 <span class="c"># offline build, http://localhost:4173  (= start-demo.bat)</span>
+
+<span class="c"># regenerate data and results</span>
+python preprocess/preprocess.py                  <span class="c"># raw Excel → public/data/{products,orders,stats}.json</span>
+node web/scripts/optimize.mjs 80000              <span class="c"># → layouts.json (+ hold-out test)</span>
+node web/scripts/congestion.mjs                  <span class="c"># → congestion.json (both aisle widths)</span>
+
+<span class="c"># presentation chain</span>
+node build/blender/dump_scene.mjs                <span class="c"># → build/blender/scene.json</span>
+<span class="c">#   in Blender: exec(open(r"build/blender/scene.py").read()); build(); bake_floor(); render_all()</span>
+python build/blender/post.py                     <span class="c"># → web/public/tex/floor.jpg</span>
+python build/prep_assets.py                      <span class="c"># → build/img/*, route_stats.json</span>
+python build/build_deck.py                       <span class="c"># → deck .pptx</span>
+msedge --headless --no-pdf-header-footer --print-to-pdf=ElectroSolve_2026_A3_Poster.pdf build/poster.html
+python build/build_official_poster.py            <span class="c"># → official poster .pptx</span>
+
+<span class="c"># this guide</span>
+msedge --headless --no-pdf-header-footer --print-to-pdf=docs/Picking_Floor_Twin_Internal_Guide.pdf docs/internal-guide.html</pre>
+<h2>Glossary (new terms only; the review-prep guide has the rest)</h2>
+<table>
+  <tr><td style="width:24%"><b>Smart batching</b></td><td>Grouping orders into one trip by how much their aisles overlap, rather than by arrival order alone.</td></tr>
+  <tr><td><b>Jaccard similarity</b></td><td>|A ∩ B| ÷ |A ∪ B|: overlap of two sets, 0 (disjoint) to 1 (identical).</td></tr>
+  <tr><td><b>Web Worker</b></td><td>A background JavaScript thread; heavy work there doesn't freeze the page. Communicates by messages only.</td></tr>
+  <tr><td><b>Backlog model</b></td><td>All work is available at the start; measures how fast a team can clear it (capacity), not waiting times for customers.</td></tr>
+  <tr><td><b>Aisle capacity</b></td><td>Maximum carts in one picking aisle at once: 1 for narrow, 2 for wide.</td></tr>
+  <tr><td><b>Waiting share</b></td><td>Fraction of the pickers' working time spent queued at full aisles.</td></tr>
+  <tr><td><b>Perfect scaling</b></td><td>N pickers doing N times the work of one; the gap to it is the congestion loss.</td></tr>
+  <tr><td><b>Fixed time step</b></td><td>The simulation advances everyone by the same small Δt (0.5 s), which makes it deterministic and easy to animate.</td></tr>
+  <tr><td><b>RFID</b></td><td>Radio tags read by a gate antenna without line of sight; here, carts passing the dock.</td></tr>
+  <tr><td><b>UWB</b></td><td>Ultra-wideband radio positioning with ~10–30 cm indoor accuracy.</td></tr>
+  <tr><td><b>Pick-to-light (PTL)</b></td><td>A light + button on each shelf face that shows where to pick and confirms it.</td></tr>
+  <tr><td><b>JSON Lines</b></td><td>One JSON object per line; the usual format for event logs and streams.</td></tr>
+  <tr><td><b>Baked lighting</b></td><td>Lighting and shadows rendered once into a texture instead of computed every frame.</td></tr>
+  <tr><td><b>Render on demand</b></td><td>Only drawing a new frame when something on screen has changed.</td></tr>
+  <tr><td><b>Morph transition</b></td><td>PowerPoint transition that animates shapes with the same name between slides.</td></tr>
+</table>
+</section>
+
+</body>
+</html>

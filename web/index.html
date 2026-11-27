@@ -4,127 +4,239 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f3eee3" />
-  <title>Picking Floor Twin</title>
+  <title>Picking Floor Digital Twin · v2 · ELECTRO-SOLVE 2026</title>
+  <meta name="description" content="A browser 3-D digital twin of a warehouse picking floor, driven by a real month of orders. Scroll the layout ladder and watch the route re-route shorter." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231f2226'/%3E%3Crect x='7' y='7' width='4' height='18' fill='%23e0442a'/%3E%3Crect x='14' y='7' width='4' height='18' fill='%23f3eee3'/%3E%3Crect x='21' y='7' width='4' height='18' fill='%23f3eee3'/%3E%3C/svg%3E" />
 </head>
 <body>
-  <div id="app">
-    <aside id="panel">
-      <header class="mast">
-        <div class="mast-top"><span class="mono">ELECTRO-SOLVE 2026</span></div>
-        <h1>Picking&nbsp;Floor<br /><em>Digital Twin</em></h1>
-        <p class="sub" id="subtitle">Loading real orders…</p>
-      </header>
+  <div id="grain"></div>
+  <div id="progress"></div>
 
-      <section>
-        <h2><i>01</i>Layout</h2>
-        <div id="layoutButtons" class="seg"></div>
-        <p id="layoutDesc" class="desc"></p>
-        <div id="copyRow" class="row hidden">
-          <button id="copyToPlayer" class="ghost">Copy this layout into “You” and edit →</button>
-        </div>
-      </section>
+  <nav id="nav">
+    <a class="brand" href="#top" aria-label="Picking Floor Digital Twin">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="4" fill="#1f2226"/><rect x="7" y="7" width="4" height="18" fill="#e0442a"/><rect x="14" y="7" width="4" height="18" fill="#f3eee3"/><rect x="21" y="7" width="4" height="18" fill="#f3eee3"/></svg>
+      <div><b>Picking Floor Twin</b><br /><span>Electro-Solve 2026</span></div>
+    </a>
+    <span class="mag"><a class="btn primary launch" href="app.html">Launch the live twin →</a></span>
+  </nav>
 
-      <section>
-        <div class="h2row">
-          <h2><i>02</i>Month replay</h2>
-          <div class="seg small" id="modeButtons">
-            <button data-mode="single" class="on">1 order</button>
-            <button data-mode="batch">Batch ×4</button>
-            <button data-mode="smart" title="Batch 4 orders whose aisles overlap, from the next 12 waiting">Smart</button>
-          </div>
+  <!-- ===================== HERO ===================== -->
+  <header class="hero" id="top">
+    <div class="wrap">
+      <div class="hero-copy">
+        <div class="eyebrow reveal">
+          <span class="stamp">ELECTRO-SOLVE 2026</span>
+          <span class="tag">VIT · SENSE</span>
         </div>
-        <table id="scoreboard"></table>
-        <p class="note" id="scoreNote"></p>
-      </section>
-
-      <section id="playerSection">
-        <h2><i>03</i>Your layout</h2>
-        <p class="desc">Click a rack, then a second rack, to swap their products. <span class="plum">◆</span> marks what is most often bought with the selected product.</p>
-        <div id="swapInfo" class="swapinfo">No swaps yet.</div>
-        <div class="row">
-          <button id="undo" class="ghost">↶ Undo</button>
-          <button id="resetOriginal" class="ghost">Reset to Original</button>
-        </div>
-        <div class="optbox">
-          <div class="h2row"><h3>Live optimizer</h3><span id="optStatus" class="mono status">idle</span></div>
-          <p class="desc tight">Simulated annealing on <b>your</b> layout, in a background thread. Every candidate swap is judged by re-routing the real orders it affects.</p>
-          <canvas id="optChart" width="560" height="140"></canvas>
-          <div class="row">
-            <button id="optRun" class="primary">Optimize live</button>
-            <button id="optStop" class="ghost" disabled>Stop</button>
-          </div>
-        </div>
-        <div class="row">
-          <input id="playerName" maxlength="18" placeholder="Your name" aria-label="Your name" />
-          <button id="saveScore">Save to leaderboard</button>
-        </div>
-        <ol id="leaderboard"></ol>
-      </section>
-
-      <section id="teamSection">
-        <div class="h2row">
-          <h2><i>04</i>Team of pickers</h2>
-          <div class="seg small" id="capButtons">
-            <button data-cap="1" class="on" title="One cart fills an aisle: other pickers queue at the entrance">Narrow aisle</button>
-            <button data-cap="2" title="Two carts can pass each other">Wide</button>
-          </div>
-        </div>
-        <div class="pickrow"><span class="lbl">Pickers on the floor</span><div class="seg small" id="pickerButtons"></div></div>
-        <p class="desc tight">Several pickers clear the month's backlog together. A full aisle makes the next picker wait at its entrance, so adding people stops adding speed. Press ▶ to watch the team.</p>
-        <table id="teamTable"></table>
-        <canvas id="teamChart" width="560" height="170"></canvas>
-        <p class="note" id="teamNote"></p>
-      </section>
-
-      <section>
-        <details>
-          <summary><i>05</i>About the data &amp; model</summary>
-          <div id="about"></div>
-        </details>
-      </section>
-    </aside>
-
-    <main id="stage">
-      <div id="canvas"></div>
-
-      <div id="hud">
-        <div class="hud-controls">
-          <button id="play" class="primary">▶ Replay orders</button>
-          <button id="stepOrder" class="ghost icon" title="Skip to next order" aria-label="Skip to next order">⏭</button>
-          <label class="speed">Speed <input id="speed" type="range" min="0" max="100" value="50" /> <span id="speedVal"></span></label>
-        </div>
-        <div class="hud-stats">
-          <div><span class="k">Orders replayed</span><span class="v" id="cOrders">0</span></div>
-          <div><span class="k">Walked</span><span class="v accent" id="cDist">0 m</span></div>
-          <div><span class="k">Sim. time</span><span class="v" id="cTime">0:00:00</span></div>
-          <div id="cCompareBox"><span class="k" id="cCompareK">Same orders on Original</span><span class="v" id="cCompare">–</span></div>
+        <h1 class="reveal" style="--d:.06s">Every metre<br />is <em>time.</em></h1>
+        <p class="lede reveal" style="--d:.14s">A browser 3-D twin of a warehouse floor, driven by a <b>real month of orders</b>. Re-slot the shelves — then watch the same <b>2,293 orders</b> replay and measure the walking you save.</p>
+        <div class="cta-row reveal" style="--d:.22s">
+          <span class="mag"><a class="btn primary lg launch" href="app.html">Launch the live twin →</a></span>
+          <a class="btn ghost lg" href="#ladder">See it re-route ↓</a>
         </div>
       </div>
 
-      <div id="orderCard" class="hidden"></div>
-
-      <div id="toolbar">
-        <label class="toggle"><input type="checkbox" id="trafficToggle" /> Floor traffic <kbd>H</kbd></label>
-        <label class="toggle"><input type="checkbox" id="iotToggle" /> IoT sensors <kbd>I</kbd></label>
-        <button id="resetView" class="ghost small">Reset view</button>
-        <div id="legend"></div>
+      <div class="plan-card reveal" style="--d:.3s">
+        <div class="cap"><span>Floor plan · one real order</span><span class="live">routing</span></div>
+        <svg viewBox="0 0 400 300" role="img" aria-label="Top-down warehouse plan with a pick route drawn through the aisles">
+          <rect class="floor-line" x="20" y="24" width="360" height="232" />
+          <line class="floor-line" x1="20" y1="48" x2="380" y2="48" />
+          <line class="floor-line" x1="20" y1="236" x2="380" y2="236" />
+          <g>
+            <rect class="rack" x="52"  y="52" width="10" height="180" /><rect class="rack" x="78"  y="52" width="10" height="180" />
+            <rect class="rack" x="112" y="52" width="10" height="180" /><rect class="rack" x="138" y="52" width="10" height="180" />
+            <rect class="rack" x="172" y="52" width="10" height="180" /><rect class="rack" x="198" y="52" width="10" height="180" />
+            <rect class="rack" x="232" y="52" width="10" height="180" /><rect class="rack" x="258" y="52" width="10" height="180" />
+            <rect class="rack" x="292" y="52" width="10" height="180" /><rect class="rack" x="318" y="52" width="10" height="180" />
+          </g>
+          <text class="aisle-n" x="70" y="44">1</text><text class="aisle-n" x="130" y="44">2</text><text class="aisle-n" x="190" y="44">3</text><text class="aisle-n" x="250" y="44">4</text><text class="aisle-n" x="310" y="44">5</text>
+          <rect class="dock" x="182" y="256" width="36" height="12" rx="1" /><text class="dock-txt" x="200" y="265" text-anchor="middle">DOCK</text>
+          <path id="heroRoute" class="route drawable" d="M200,256 L200,236 L130,236 L130,130 L130,236 L250,236 L250,95 L250,236 L312,236 L312,165 L312,236 L200,236 L200,256" />
+          <circle class="pick" data-at="700"  cx="130" cy="130" r="5.5" /><circle class="pick" data-at="1050" cx="250" cy="95" r="5.5" /><circle class="pick" data-at="1350" cx="312" cy="165" r="5.5" />
+          <rect class="cart" x="-4" y="-4" width="8" height="8" rx="1" fill="#e0442a" />
+        </svg>
       </div>
+    </div>
+  </header>
 
-      <div id="iotPanel" class="hidden">
-        <div class="iot-head" title="Drag to move · double-click to put it back">
-          <span class="live">● LIVE</span><b>Sensor event stream</b>
-          <span class="iot-count" id="iotCount">0 events</span>
-          <button id="iotDownload" class="ghost small" title="Download the event log as JSON Lines">⬇ JSONL</button>
-        </div>
-        <div class="iot-legend"><span class="t-rfid">RFID</span><span class="t-uwb">UWB</span><span class="t-ptl">PICK-TO-LIGHT</span><span class="t-scan">SCAN</span></div>
-        <div id="iotFeed"></div>
-      </div>
-
-      <div id="tooltip" class="hidden"></div>
-      <div id="toast" class="hidden" role="status"></div>
-    </main>
+  <div class="ribbon reveal">
+    <div class="wrap">
+      <div class="cell"><div class="num tnum" data-count="2293">0</div><div class="lbl">Real orders replayed</div></div>
+      <div class="cell"><div class="num tnum" data-count="16225">0</div><div class="lbl">Pick lines</div></div>
+      <div class="cell"><div class="num tnum" data-count="100">0</div><div class="lbl">Slots on the floor</div></div>
+      <div class="cell"><div class="num sig tnum" data-count="68" data-suffix="%">0</div><div class="lbl">Less walking, best case</div></div>
+    </div>
   </div>
-  <script type="module" src="/src/main.js"></script>
+
+  <!-- ===================== SCROLLYTELLING LADDER ===================== -->
+  <section class="block scrolly" id="ladder">
+    <div class="wrap">
+      <!-- left: the sticky plan that re-routes as you scroll -->
+      <div class="sticky">
+        <div class="stage">
+          <div class="cap"><span>Same month · same orders</span><span class="now" id="nowName">Original</span></div>
+          <svg id="ladderSvg" viewBox="0 0 400 300" role="img" aria-label="Warehouse plan whose pick route re-routes and racks recolour as the layout improves">
+            <rect class="floor-line" x="20" y="24" width="360" height="232" />
+            <line class="floor-line" x1="20" y1="48" x2="380" y2="48" /><line class="floor-line" x1="20" y1="236" x2="380" y2="236" />
+            <g>
+              <rect class="rack" x="52"  y="52" width="10" height="180" /><rect class="rack" x="78"  y="52" width="10" height="180" />
+              <rect class="rack" x="112" y="52" width="10" height="180" /><rect class="rack" x="138" y="52" width="10" height="180" />
+              <rect class="rack" x="172" y="52" width="10" height="180" /><rect class="rack" x="198" y="52" width="10" height="180" />
+              <rect class="rack" x="232" y="52" width="10" height="180" /><rect class="rack" x="258" y="52" width="10" height="180" />
+              <rect class="rack" x="292" y="52" width="10" height="180" /><rect class="rack" x="318" y="52" width="10" height="180" />
+            </g>
+            <text class="aisle-n" x="70" y="44">1</text><text class="aisle-n" x="130" y="44">2</text><text class="aisle-n" x="190" y="44">3</text><text class="aisle-n" x="250" y="44">4</text><text class="aisle-n" x="310" y="44">5</text>
+            <rect class="dock" x="182" y="256" width="36" height="12" rx="1" /><text class="dock-txt" x="200" y="265" text-anchor="middle">DOCK</text>
+            <path id="ladderRoute" class="route drawable" d="" />
+          </svg>
+          <div class="readout">
+            <div class="km tnum"><span id="ladderKm">218.1</span> <small>km / month</small></div>
+            <div class="delta base" id="ladderDelta">baseline</div>
+          </div>
+          <div class="readbar"><i id="ladderBar" style="width:100%"></i></div>
+          <div class="ramp-key"><span>rare</span><span class="ramp"></span><span>picked often</span></div>
+        </div>
+      </div>
+
+      <!-- right: the scroll steps -->
+      <div class="steps" id="steps">
+        <p class="khead" style="margin-bottom:28px"><i>03</i>The layout ladder — scroll it</p>
+        <div class="step on"
+             data-name="Original" data-km="218.1" data-delta="baseline" data-base="1" data-w="100"
+             data-d="M200,256 L200,236 L70,236 L70,76 L70,236 L310,236 L310,68 L310,236 L190,236 L190,104 L190,236 L200,236 L200,256">
+          <span class="n">00 · as received</span><h3>Original</h3>
+          <p>Products sit in <b>stock-code order</b> — no thought to where they're picked. The route sprawls across the whole floor, into the far aisles, every trip.</p>
+        </div>
+        <div class="step"
+             data-name="ABC" data-km="212.7" data-delta="−2.5%" data-w="97.5"
+             data-d="M200,256 L200,236 L130,236 L130,150 L130,236 L250,236 L250,120 L250,236 L310,236 L310,172 L310,236 L200,236 L200,256">
+          <span class="n">01 · intuition</span><h3>ABC</h3>
+          <p>Put the <b>most-picked products nearest the dock</b>. The obvious move — and it barely helps. Orders are 7 lines long, so the picker still visits most aisles. <b>−2.5%.</b></p>
+        </div>
+        <div class="step"
+             data-name="Affinity" data-km="193.4" data-delta="−11.3%" data-w="88.7"
+             data-d="M200,256 L200,236 L130,236 L130,128 L130,236 L190,236 L190,150 L190,236 L250,236 L250,140 L250,236 L200,236 L200,256">
+          <span class="n">02 · data insight</span><h3>Affinity</h3>
+          <p>Place products <b>bought together</b> in the same aisle. Now one trip stays local instead of crossing the floor. <b>−11.3%</b> — four times ABC.</p>
+        </div>
+        <div class="step"
+             data-name="Optimized" data-km="183.7" data-delta="−15.8%" data-w="84.2"
+             data-d="M200,256 L200,236 L190,236 L190,150 L190,236 L250,236 L250,160 L250,236 L200,236 L200,256">
+          <span class="n">03 · algorithm</span><h3>Optimized</h3>
+          <p><b>Simulated annealing</b> over slot swaps, every candidate scored on the exact replay distance. The route collapses to two adjacent aisles. <b>−15.8%.</b></p>
+        </div>
+        <div class="step player"
+             data-name="Your floor" data-km="183.7" data-delta="your move →" data-you="1" data-w="84.2"
+             data-d="M200,256 L200,236 L190,236 L190,160 L190,236 L250,236 L250,170 L250,236 L200,236 L200,256">
+          <span class="n">you · the game</span><h3>Your floor</h3>
+          <p>183.7 km is the bar the algorithm set. Now it's yours — <b>click two racks to swap them</b>, watch the scoreboard move, and see if you can beat the optimizer. <a class="launch" href="app.html">open the editor →</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== REAL-ORDER COMPARISON ===================== -->
+  <section class="block" id="order">
+    <div class="wrap">
+      <p class="khead reveal"><i>04</i>One real order, two floors</p>
+      <h2 class="reveal" style="--d:.05s">Invoice 532964 — nine lines.</h2>
+      <p class="sec-lede reveal" style="--d:.1s">The same basket, picked on two layouts. This isn't a diagram — it's one real order from the dataset, routed by the same engine the twin uses.</p>
+      <div class="vs">
+        <div class="panel reveal">
+          <div class="head"><h4>Original</h4><span class="d tnum">143 m</span></div>
+          <svg viewBox="0 0 320 240" aria-label="Order 532964 on the Original layout: 143 m through five aisles">
+            <rect class="floor-line" x="16" y="18" width="288" height="186" />
+            <line class="floor-line" x1="16" y1="38" x2="304" y2="38" /><line class="floor-line" x1="16" y1="188" x2="304" y2="188" />
+            <g>
+              <rect class="rack" x="42" y="42" width="8" height="144"/><rect class="rack" x="64" y="42" width="8" height="144"/>
+              <rect class="rack" x="94" y="42" width="8" height="144"/><rect class="rack" x="116" y="42" width="8" height="144"/>
+              <rect class="rack" x="146" y="42" width="8" height="144"/><rect class="rack" x="168" y="42" width="8" height="144"/>
+              <rect class="rack" x="198" y="42" width="8" height="144"/><rect class="rack" x="220" y="42" width="8" height="144"/>
+              <rect class="rack" x="250" y="42" width="8" height="144"/><rect class="rack" x="272" y="42" width="8" height="144"/>
+            </g>
+            <rect class="dock" x="146" y="204" width="28" height="10" rx="1"/><text class="dock-txt" x="160" y="212" text-anchor="middle">DOCK</text>
+            <path class="route drawable cmp" id="cmpA" d="M160,204 L160,188 L57,188 L57,70 L57,188 L265,188 L265,60 L265,188 L105,188 L105,95 L105,188 L209,188 L209,80 L209,188 L160,188 L160,204" />
+          </svg>
+          <div class="foot">5 aisles visited</div>
+        </div>
+        <div class="panel best reveal" style="--d:.1s">
+          <div class="head"><h4>Optimized</h4><span class="d tnum">62 m</span></div>
+          <svg viewBox="0 0 320 240" aria-label="Order 532964 on the Optimized layout: 62 m through two aisles">
+            <rect class="floor-line" x="16" y="18" width="288" height="186" />
+            <line class="floor-line" x1="16" y1="38" x2="304" y2="38" /><line class="floor-line" x1="16" y1="188" x2="304" y2="188" />
+            <g>
+              <rect class="rack" x="42" y="42" width="8" height="144"/><rect class="rack" x="64" y="42" width="8" height="144"/>
+              <rect class="rack" x="94" y="42" width="8" height="144"/><rect class="rack" x="116" y="42" width="8" height="144"/>
+              <rect class="rack" x="146" y="42" width="8" height="144"/><rect class="rack" x="168" y="42" width="8" height="144"/>
+              <rect class="rack" x="198" y="42" width="8" height="144"/><rect class="rack" x="220" y="42" width="8" height="144"/>
+              <rect class="rack" x="250" y="42" width="8" height="144"/><rect class="rack" x="272" y="42" width="8" height="144"/>
+            </g>
+            <rect class="dock" x="146" y="204" width="28" height="10" rx="1"/><text class="dock-txt" x="160" y="212" text-anchor="middle">DOCK</text>
+            <path class="route drawable cmp" id="cmpB" d="M160,204 L160,188 L135,188 L135,95 L135,188 L185,188 L185,85 L185,188 L160,188 L160,204" />
+          </svg>
+          <div class="foot">2 aisles visited</div>
+        </div>
+      </div>
+      <p class="vs-note reveal">Same nine items. <b>81 metres saved</b> on one order — multiplied across 2,293 of them.</p>
+    </div>
+  </section>
+
+  <!-- ===================== RESULTS ===================== -->
+  <section class="block" id="results">
+    <div class="wrap">
+      <p class="khead reveal"><i>05</i>The whole month</p>
+      <h2 class="reveal" style="--d:.05s">From 218 km to 70.</h2>
+      <p class="sec-lede reveal" style="--d:.1s">One order per trip, full month — real replay distance, same orders, different shelves.</p>
+      <div class="results reveal" style="--d:.12s">
+        <div class="chart" id="chart">
+          <div class="crow"><span class="cl">Original</span><div class="ct"><i data-w="100"></i></div><span class="cv"><b class="tnum">218.1</b> km</span></div>
+          <div class="crow"><span class="cl">ABC</span><div class="ct"><i data-w="97.5"></i></div><span class="cv"><b class="tnum">212.7</b> km <span class="pc">−2.5%</span></span></div>
+          <div class="crow"><span class="cl">Affinity</span><div class="ct"><i data-w="88.7"></i></div><span class="cv"><b class="tnum">193.4</b> km <span class="pc">−11%</span></span></div>
+          <div class="crow best"><span class="cl">Optimized</span><div class="ct"><i data-w="84.2"></i></div><span class="cv"><b class="tnum">183.7</b> km <span class="pc">−16%</span></span></div>
+        </div>
+        <div class="axis"><span>0</span><span>km walked per month →</span><span>218</span></div>
+        <div class="finding">
+          <div class="callout"><h4>The key finding</h4><p><b>ABC — the textbook answer — saves only 2.5%.</b> Grouping products that are <span class="hl">bought together</span> saves 4–5× more.</p></div>
+          <div class="callout moss"><h4>Stack slotting + batching</h4><p>Add <b>smart batching</b> on the best layout and the month's walk drops to <span class="hl">70 km — a 68% cut</span> from 218.</p></div>
+        </div>
+        <p class="src">Held-out check: layouts built only from orders before 22 Nov, tested on the final <b>766 unseen orders</b> — Optimized still <b>−13.9%</b>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FEATURES ===================== -->
+  <section class="block" id="features">
+    <div class="wrap">
+      <p class="khead reveal"><i>06</i>Inside the twin</p>
+      <h2 class="reveal" style="--d:.05s">More than a slotting toy.</h2>
+      <div class="features">
+        <div class="feat reveal"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></div><h3>Live optimizer</h3><p>Simulated annealing on <b>your</b> layout in a Web Worker — 24,000 swaps in ~15 s, racks recolouring as it improves.</p></div>
+        <div class="feat reveal" style="--d:.07s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round"/><path d="M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke-linecap="round"/></svg></div><h3>IoT sensor mode</h3><p>The replay streams what real hardware would: <b>RFID</b> gates, <b>UWB</b> tags, <b>pick-to-light</b> lamps, barcode scans. Download as JSONL.</p></div>
+        <div class="feat reveal" style="--d:.14s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="8" r="2.4"/><circle cx="17" cy="8" r="2.4"/><path d="M3 20c0-2.5 1.8-4 4-4s4 1.5 4 4M13 20c0-2.5 1.8-4 4-4s4 1.5 4 4" stroke-linecap="round"/></svg></div><h3>Team of pickers</h3><p>1–6 pickers from one queue. A narrow aisle holds one cart; the next <b>waits at the entrance</b>. Congestion, not just distance.</p></div>
+        <div class="feat reveal" style="--d:.07s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7"/><rect x="14" y="4" width="7" height="7"/><rect x="3" y="15" width="7" height="5"/><rect x="14" y="15" width="7" height="5"/></svg></div><h3>Smart batching</h3><p>Each trip grabs the three waiting orders whose aisles <b>overlap most</b>. Same orders, 12–15% less walking.</p></div>
+        <div class="feat reveal" style="--d:.14s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></div><h3>Heatmaps</h3><p>Rack-visit and floor-traffic overlays on one colour ramp — a product keeps its colour across every layout and slide.</p></div>
+        <div class="feat reveal" style="--d:.21s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>Runs fully offline</h3><p>Render-on-demand WebGL — <b>0 draw calls while idle</b> — baked lighting, instanced geometry. Opens from a folder.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CLOSER ===================== -->
+  <section class="closer" id="launch">
+    <div class="wrap">
+      <h2 class="reveal">See it move.</h2>
+      <p class="sub reveal" style="--d:.06s">Replay the month, swap the shelves, race the optimizer — in your browser.</p>
+      <div class="cta-row reveal" style="--d:.12s">
+        <span class="mag"><a class="btn primary lg launch" href="app.html">Launch the live twin →</a></span>
+        <a class="btn ghost lg" href="#top">Back to top ↑</a>
+      </div>
+      <div class="credits reveal">
+        <span>Team <b>GitHappens</b></span><span>Rohith Krishna A K · <b>25BCE2027</b></span><span>Jaidev A · <b>25BCE0971</b></span><span>Guide: <b>Dr. Jaffino</b>, SENSE</span><span><b>VIT</b> · ELECTRO-SOLVE 2026</span>
+      </div>
+      <div class="stack">Three.js 0.169 · Vite 5 · Python / pandas · Node · Blender 5 — the app runs fully offline</div>
+    </div>
+  </section>
+
+  <div id="curtain" aria-hidden="true"><span class="dot"></span><span class="msg">Loading the floor</span></div>
+  <script type="module" src="/src/landing-v2.js"></script>
 </body>
 </html>
