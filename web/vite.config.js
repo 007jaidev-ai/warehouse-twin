@@ -8,11 +8,10 @@ export default defineConfig({
   server: { port: 5173, open: false },
   build: {
     rollupOptions: {
-      // index = landing (v2), app = the live twin, landing-v1 = archived first cut
+      // index = landing page, app = the live twin
       input: {
         main: r('./index.html'),
         app: r('./app.html'),
-        v1: r('./landing-v1.html'),
       },
     },
   },
